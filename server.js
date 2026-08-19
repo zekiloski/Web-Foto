@@ -18,7 +18,8 @@ function getLocalIP() {
 const LOCAL_IP = getLocalIP();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+app.set('trust proxy', 1); // Hostinger corre la app detrás de un proxy que termina el HTTPS
 
 // Ensure uploads dir exists
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -51,7 +52,8 @@ app.use('/uploads', express.static(uploadsDir));
 // Admin: generate new QR session
 app.get('/api/nueva-sesion', async (req, res) => {
   const sessionId = uuidv4();
-  const uploadUrl = `http://${LOCAL_IP}:${PORT}/upload/${sessionId}`;
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const uploadUrl = `${baseUrl}/upload/${sessionId}`;
   const qrDataUrl = await QRCode.toDataURL(uploadUrl, { width: 300 });
   res.json({ sessionId, uploadUrl, qr: qrDataUrl });
 });
@@ -97,5 +99,5 @@ app.get('/upload/:sessionId', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
   console.log(`Panel admin: http://localhost:${PORT}/admin.html`);
-  console.log(`IP local de red: http://${LOCAL_IP}:${PORT} (usá esta IP en el QR)`);
+  console.log(`IP local de red: http://${LOCAL_IP}:${PORT} (para probar en el celular sin desplegar)`);
 });
