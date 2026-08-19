@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subir Fotos</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --muted: #94a3b8;
+      --text: #f1f5f9;
+      --indigo: #6366f1;
+      --indigo-dark: #4f46e5;
+      --green: #22c55e;
+      --green-dark: #16a34a;
+      --blue: #0ea5e9;
+      --blue-dark: #0284c7;
+      --red: #ef4444;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 6rem;
+    }
+
+    /* ── Header ── */
+    .logo { font-size: 3rem; margin-bottom: 0.4rem; }
+    h1    { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .sub  { color: var(--muted); font-size: 0.85rem; text-align: center; margin-bottom: 2rem; }
+
+    /* ── Botones agregar ── */
+    .add-row {
+      display: flex;
+      gap: 0.7rem;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 1.2rem;
+    }
+    .btn-add {
+      flex: 1;
+      border: none;
+      border-radius: 11px;
+      padding: 0.85rem 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .btn-add:active { transform: scale(0.97); }
+    .btn-camara  { background: var(--blue);   color: white; }
+    .btn-camara:hover  { background: var(--blue-dark); }
+    .btn-galeria { background: var(--indigo); color: white; }
+    .btn-galeria:hover { background: var(--indigo-dark); }
+
+    input[type="file"] { display: none; }
+
+    /* ── Barra de selección ── */
+    .sel-bar {
+      display: none;
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 0.55rem 0.9rem;
+      margin-bottom: 0.8rem;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .sel-bar.visible { display: flex; }
+    .sel-bar span { font-size: 0.82rem; color: var(--muted); }
+    .sel-bar-btns { display: flex; gap: 0.5rem; }
+    .btn-sm {
+      border: none;
+      border-radius: 7px;
+      padding: 0.32rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-sm-ghost { background: var(--border); color: var(--text); }
+    .btn-sm-ghost:hover { background: #475569; }
+    .btn-sm-red   { background: var(--red);   color: white; }
+    .btn-sm-red:hover { background: #dc2626; }
+
+    /* ── Grid fotos ── */
+    .grid-wrap { width: 100%; max-width: 420px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .foto-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 9px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .foto-item img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      transition: filter 0.15s;
+      pointer-events: none;
+    }
+    .foto-item.selected img { filter: brightness(0.5); }
+
+    .foto-check {
+      position: absolute; top: 6px; right: 6px;
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2.5px solid white;
+      background: rgba(0,0,0,0.3);
+      pointer-events: none;
+      transition: background 0.15s;
+    }
+    .foto-item.selected .foto-check {
+      background: var(--indigo);
+      border-color: var(--indigo);
+    }
+    .foto-check::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 6px;
+      width: 5px; height: 9px;
+      border: 2.5px solid white;
+      border-top: none; border-left: none;
+      transform: rotate(45deg);
+      display: none;
+    }
+    .foto-item.selected .foto-check::after { display: block; }
+
+    /* Botón X eliminar individual */
+    .btn-del {
+      position: absolute; top: 6px; left: 6px;
+      width: 22px; height: 22px; border-radius: 50%;
+      border: none;
+      background: rgba(239,68,68,0.85);
+      color: white; font-size: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .foto-item:hover .btn-del { opacity: 1; }
+
+    .empty-msg {
+      color: var(--border);
+      text-align: center;
+      padding: 2.5rem 0;
+      font-size: 0.88rem;
+      width: 100%;
+    }
+
+    /* ── Barra de progreso ── */
+    #prog-wrap { display: none; width: 100%; max-width: 420px; margin-top: 1rem; }
+    .prog-bg { background: var(--surface); border-radius: 99px; height: 8px; overflow: hidden; }
+    .prog-fill { height: 100%; background: var(--indigo); border-radius: 99px; transition: width 0.3s; width: 0%; }
+    #prog-text { color: var(--muted); font-size: 0.82rem; margin-top: 0.4rem; text-align: center; }
+
+    /* ── Resultado ── */
+    #resultado {
+      display: none;
+      text-align: center;
+      margin-top: 1.5rem;
+      width: 100%;
+      max-width: 420px;
+    }
+    #resultado .icon { font-size: 3rem; }
+    #resultado p { color: var(--muted); margin-top: 0.5rem; font-size: 0.9rem; }
+    .btn-nuevo {
+      width: 100%; margin-top: 1rem;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-nuevo:hover { background: var(--border); }
+
+    /* ── Footer fijo ── */
+    .footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(15,23,42,0.95);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--surface);
+      padding: 0.85rem 1rem;
+      display: flex;
+      justify-content: center;
+    }
+    .btn-subir {
+      width: 100%; max-width: 420px;
+      background: var(--green);
+      color: white; border: none;
+      border-radius: 11px;
+      padding: 0.85rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-subir:active:not(:disabled) { transform: scale(0.98); }
+    .btn-subir:hover:not(:disabled)  { background: var(--green-dark); }
+    .btn-subir:disabled { background: var(--surface); color: #475569; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <div class="logo">📸</div>
+  <h1>Subir Fotos</h1>
+  <p class="sub">Agregá fotos, revisá la selección y subí cuando estés listo</p>
+
+  <div class="add-row">
+    <button class="btn-add btn-camara"  id="btn-camara">📷 Cámara</button>
+    <button class="btn-add btn-galeria" id="btn-galeria">🖼️ Galería</button>
+  </div>
+
+  <input type="file" id="file-cam"  accept="image/*" capture="environment" />
+  <input type="file" id="file-gal"  accept="image/*" multiple />
+
+  <!-- Barra selección -->
+  <div class="sel-bar" id="sel-bar">
+    <span id="sel-texto">0 seleccionadas</span>
+    <div class="sel-bar-btns">
+      <button class="btn-sm btn-sm-ghost" id="btn-sel-all">Sel. todo</button>
+      <button class="btn-sm btn-sm-red"   id="btn-del-sel">🗑 Eliminar</button>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid-wrap">
+    <div class="grid" id="grid">
+      <p class="empty-msg">Usá los botones de arriba para agregar fotos</p>
+    </div>
+  </div>
+
+  <!-- Progreso -->
+  <div id="prog-wrap">
+    <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
+    <p id="prog-text">Subiendo…</p>
+  </div>
+
+  <!-- Resultado -->
+  <div id="resultado">
+    <div class="icon" id="res-icon"></div>
+    <p id="res-msg"></p>
+    <button class="btn-nuevo" id="btn-nuevo">📷 Subir más fotos</button>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button class="btn-subir" id="btn-subir" disabled>
+      ⬆️ Subir fotos (<span id="cuenta">0</span>)
+    </button>
+  </div>
+
+<script>
+  const sessionId = location.pathname.split('/').pop();
+  let fotos = []; // { id, file, url, selected }
+  let idSeq = 0;
+
+  // ── Inputs ──────────────────────────────────────────────────────────────────
+  document.getElementById('btn-camara').addEventListener('click',
+    () => document.getElementById('file-cam').click());
+  document.getElementById('btn-galeria').addEventListener('click',
+    () => document.getElementById('file-gal').click());
+
+  document.getElementById('file-cam').addEventListener('change', e => {
+    addFiles([...e.target.files]); e.target.value = '';
+  });
+  document.getElementById('file-gal').addEventListener('change', e => {
+    addFiles([...e.target.files]); e.target.value = '';
+  });
+
+  function addFiles(files) {
+    files.filter(f => f.type.startsWith('image/')).forEach(f => {
+      fotos.push({ id: idSeq++, file: f, url: URL.createObjectURL(f), selected: false });
+    });
+    render();
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+  function render() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    if (!fotos.length) {
+      grid.innerHTML = '<p class="empty-msg">Usá los botones de arriba para agregar fotos</p>';
+      syncUI(); return;
+    }
+
+    fotos.forEach(foto => {
+      const item = document.createElement('div');
+      item.className = 'foto-item' + (foto.selected ? ' selected' : '');
+
+      const img = document.createElement('img');
+      img.src = foto.url;
+
+      const chk = document.createElement('div');
+      chk.className = 'foto-check';
+
+      const del = document.createElement('button');
+      del.className = 'btn-del';
+      del.innerHTML = '✕';
+      del.addEventListener('click', e => { e.stopPropagation(); remove(foto.id); });
+
+      item.append(img, chk, del);
+      item.addEventListener('click', () => {
+        foto.selected = !foto.selected;
+        item.classList.toggle('selected', foto.selected);
+        syncUI();
+      });
+
+      grid.appendChild(item);
+    });
+
+    syncUI();
+  }
+
+  function remove(id) {
+    const i = fotos.findIndex(f => f.id === id);
+    if (i !== -1) { URL.revokeObjectURL(fotos[i].url); fotos.splice(i, 1); }
+    render();
+  }
+
+  function syncUI() {
+    const sel = fotos.filter(f => f.selected);
+    const haySel   = sel.length > 0;
+    const hayFotos = fotos.length > 0;
+
+    // barra
+    const bar = document.getElementById('sel-bar');
+    if (haySel) {
+      bar.classList.add('visible');
+      document.getElementById('sel-texto').textContent =
+        `${sel.length} seleccionada${sel.length > 1 ? 's' : ''}`;
+      document.getElementById('btn-sel-all').textContent =
+        sel.length === fotos.length ? 'Desel. todo' : 'Sel. todo';
+    } else {
+      bar.classList.remove('visible');
+    }
+
+    // footer
+    const btn = document.getElementById('btn-subir');
+    btn.disabled = !hayFotos;
+    document.getElementById('cuenta').textContent = fotos.length;
+  }
+
+  // Seleccionar todo
+  document.getElementById('btn-sel-all').addEventListener('click', () => {
+    const allOn = fotos.every(f => f.selected);
+    fotos.forEach(f => f.selected = !allOn);
+    render();
+  });
+
+  // Eliminar seleccionadas
+  document.getElementById('btn-del-sel').addEventListener('click', () => {
+    fotos.filter(f => f.selected).forEach(f => URL.revokeObjectURL(f.url));
+    fotos = fotos.filter(f => !f.selected);
+    render();
+  });
+
+  // ── Subir ────────────────────────────────────────────────────────────────────
+  document.getElementById('btn-subir').addEventListener('click', async () => {
+    if (!fotos.length) return;
+
+    document.getElementById('resultado').style.display = 'none';
+    document.getElementById('prog-wrap').style.display = 'block';
+    document.getElementById('prog-fill').style.width = '0%';
+    document.getElementById('btn-subir').disabled = true;
+
+    const form = new FormData();
+    fotos.forEach(f => form.append('fotos', f.file));
+
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) {
+        const p = Math.round(e.loaded / e.total * 100);
+        document.getElementById('prog-fill').style.width = p + '%';
+        document.getElementById('prog-text').textContent = `Subiendo… ${p}%`;
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      document.getElementById('prog-wrap').style.display = 'none';
+      if (xhr.status === 200) {
+        showResult(true, `¡Listo! Se enviaron ${fotos.length} foto${fotos.length > 1 ? 's' : ''} correctamente 🎉`);
+        fotos.forEach(f => URL.revokeObjectURL(f.url));
+        fotos = [];
+        render();
+      } else {
+        showResult(false, 'Hubo un error. Intentá de nuevo.');
+        document.getElementById('btn-subir').disabled = false;
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      document.getElementById('prog-wrap').style.display = 'none';
+      showResult(false, 'Sin conexión. Verificá el WiFi e intentá de nuevo.');
+      document.getElementById('btn-subir').disabled = false;
+    });
+
+    xhr.open('POST', `/api/subir/${sessionId}`);
+    xhr.send(form);
+  });
+
+  function showResult(ok, msg) {
+    const r = document.getElementById('resultado');
+    r.style.display = 'block';
+    document.getElementById('res-icon').textContent = ok ? '✅' : '❌';
+    document.getElementById('res-msg').textContent = msg;
+  }
+
+  document.getElementById('btn-nuevo').addEventListener('click', () => {
+    document.getElementById('resultado').style.display = 'none';
+    syncUI();
+  });
+</script>
+</body>
+</html>

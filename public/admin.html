@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Gestor de Fotos</title>
+  <script src="https://accounts.google.com/gsi/client" defer></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Tokens por tema ─────────────────────────────────────────────────────── */
+    :root {
+      --indigo:      #6366f1;
+      --indigo-dark: #4f46e5;
+      --green:       #22c55e;
+      --red:         #ef4444;
+      --radius:      12px;
+    }
+    [data-theme="dark"] {
+      --bg:        #0f172a;
+      --bg2:       #1e293b;
+      --bg3:       #334155;
+      --border:    #334155;
+      --text:      #f1f5f9;
+      --text2:     #94a3b8;
+      --card:      rgba(15,23,42,0.82);
+      --header-bg: rgba(10,15,28,0.92);
+    }
+    [data-theme="light"] {
+      --bg:        #f0f2f5;
+      --bg2:       #ffffff;
+      --bg3:       #e5e7eb;
+      --border:    #e5e7eb;
+      --text:      #1f2937;
+      --text2:     #6b7280;
+      --card:      rgba(255,255,255,0.9);
+      --header-bg: rgba(26,26,46,0.95);
+    }
+
+    /* ── Base ────────────────────────────────────────────────────────────────── */
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* Fondo personalizado */
+    body.has-bg {
+      background-attachment: fixed;
+      background-size: cover;
+      background-position: center;
+    }
+    body.has-bg::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: inherit;
+      filter: blur(0px);
+      z-index: -1;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────────── */
+    header {
+      background: var(--header-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 0 1.2rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      position: sticky;
+      top: 0; z-index: 50;
+    }
+    .header-logo {
+      height: 36px; width: 36px;
+      border-radius: 8px;
+      object-fit: contain;
+      display: none;
+      background: transparent;
+    }
+    .header-logo.visible { display: block; }
+    .header-title {
+      font-size: 1rem; font-weight: 700;
+      color: #fff; flex: 1;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .header-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+    /* ── Botones header ──────────────────────────────────────────────────────── */
+    .hbtn {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 0.38rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 0.35rem;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .hbtn:hover { background: rgba(255,255,255,0.18); }
+
+    /* toggle tema */
+    .theme-toggle {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      border-radius: 20px;
+      padding: 0.32rem 0.7rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 0.3rem;
+      transition: background 0.15s;
+    }
+    .theme-toggle:hover { background: rgba(255,255,255,0.2); }
+
+    /* ── Contenedor ─────────────────────────────────────────────────────────── */
+    .container {
+      max-width: 1060px;
+      margin: 1.5rem auto;
+      padding: 0 1rem;
+    }
+
+    /* ── Cards ───────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.2rem;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .card-title {
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text2); margin-bottom: 1rem;
+    }
+
+    /* ── Botones ─────────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      border: none; border-radius: 8px;
+      padding: 0.58rem 1.1rem;
+      font-size: 0.85rem; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, opacity 0.15s;
+      white-space: nowrap;
+    }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+    .btn-primary { background: var(--indigo);  color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--indigo-dark); }
+    .btn-ghost   { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover:not(:disabled)   { filter: brightness(1.1); }
+    .btn-danger  { background: var(--red); color: #fff; }
+    .btn-danger:hover:not(:disabled)  { background: #dc2626; }
+    .btn-gdrive  { background: #fff; color: #3c4043; border: 1px solid #dadce0; font-weight: 700; }
+    .btn-gdrive:hover:not(:disabled)  { background: #f8f9fa; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+
+    /* ── QR ──────────────────────────────────────────────────────────────────── */
+    .qr-wrap {
+      display: flex; gap: 1.5rem;
+      align-items: flex-start; flex-wrap: wrap;
+      margin-top: 1.1rem;
+    }
+    #qr-img { border: 3px solid var(--border); border-radius: 10px; flex-shrink: 0; max-width: 160px; }
+    .qr-meta { flex: 1; min-width: 180px; }
+    .qr-meta .lbl { font-size: 0.8rem; color: var(--text2); margin-bottom: 0.35rem; }
+    .url-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 7px; padding: 0.5rem 0.75rem;
+      font-size: 0.78rem; word-break: break-all;
+      color: var(--text); margin-bottom: 0.9rem;
+      font-family: monospace;
+    }
+    .badge-live {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(16,185,129,0.15); color: #10b981;
+      border-radius: 20px; padding: 0.28rem 0.8rem;
+      font-size: 0.78rem; font-weight: 700;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+    /* ── Toolbar fotos ───────────────────────────────────────────────────────── */
+    .toolbar {
+      display: flex; align-items: center;
+      gap: 0.6rem; flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .toolbar-left  { display: flex; align-items: center; gap: 0.55rem; flex: 1; min-width: 0; }
+    .toolbar-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .foto-count { font-size: 1rem; font-weight: 800; color: var(--indigo); }
+    #sel-badge {
+      display: none; background: var(--indigo); color: #fff;
+      border-radius: 20px; padding: 0.12rem 0.6rem;
+      font-size: 0.75rem; font-weight: 700;
+    }
+    #sel-badge.visible { display: inline-block; }
+
+    /* ── Grid ────────────────────────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.6rem;
+    }
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+    }
+
+    .foto-item {
+      position: relative; aspect-ratio: 1;
+      border-radius: 9px; overflow: hidden; cursor: pointer;
+    }
+    .foto-item img {
+      width: 100%; height: 100%; object-fit: cover;
+      display: block; transition: filter 0.15s, transform 0.15s;
+      pointer-events: none;
+    }
+    .foto-item:hover:not(.selected) img { transform: scale(1.05); }
+    .foto-item.selected img { filter: brightness(0.45); }
+
+    .foto-check {
+      position: absolute; top: 6px; right: 6px;
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2.5px solid #fff;
+      background: rgba(0,0,0,0.25);
+      pointer-events: none; transition: background 0.15s;
+    }
+    .foto-item.selected .foto-check { background: var(--indigo); border-color: var(--indigo); }
+    .foto-check::after {
+      content: ''; position: absolute;
+      top: 3px; left: 6px; width: 5px; height: 9px;
+      border: 2.5px solid #fff; border-top: none; border-left: none;
+      transform: rotate(45deg); display: none;
+    }
+    .foto-item.selected .foto-check::after { display: block; }
+
+    .foto-num {
+      position: absolute; bottom: 5px; left: 6px;
+      background: rgba(0,0,0,0.5); color: #fff;
+      font-size: 0.65rem; border-radius: 4px; padding: 1px 5px;
+      pointer-events: none;
+    }
+
+    .empty-state {
+      grid-column: 1/-1; text-align: center;
+      padding: 3rem 1rem; color: var(--text2); font-size: 0.88rem;
+    }
+    .empty-state .ei { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+    /* ── Overlay progreso ────────────────────────────────────────────────────── */
+    #upload-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6); z-index: 100;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    #upload-overlay.open { display: flex; }
+    .upload-box {
+      background: var(--bg2); border-radius: 14px;
+      padding: 2rem 2.5rem; text-align: center; min-width: 260px; max-width: 360px; width: 100%;
+    }
+    .upload-box .ei { font-size: 2rem; margin-bottom: 0.6rem; }
+    .upload-box p   { font-size: 0.88rem; color: var(--text2); margin-bottom: 1rem; }
+    .prog-bg  { background: var(--bg3); border-radius: 99px; height: 8px; overflow: hidden; }
+    .prog-fill { height: 100%; background: var(--indigo); border-radius: 99px; transition: width 0.3s; width: 0%; }
+    #upload-status { font-size: 0.8rem; color: var(--text2); margin-top: 0.5rem; }
+
+    /* ── Lightbox ────────────────────────────────────────────────────────────── */
+    #lightbox {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    #lightbox.open { display: flex; }
+    #lb-img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
+    #lb-close {
+      position: absolute; top: 1rem; right: 1.5rem;
+      color: #fff; font-size: 2rem; cursor: pointer; line-height: 1;
+    }
+    .lb-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.12); color: #fff;
+      border: none; border-radius: 50%; width: 44px; height: 44px;
+      font-size: 1.4rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .lb-nav:hover { background: rgba(255,255,255,0.25); }
+    #lb-prev { left: 1rem; }
+    #lb-next { right: 1rem; }
+
+    /* ── Toast ───────────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #1f2937; color: #fff;
+      padding: 0.65rem 1.3rem; border-radius: 8px;
+      font-size: 0.85rem; z-index: 300; pointer-events: none;
+      transition: transform 0.25s; white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.ok  { background: #16a34a; }
+    #toast.err { background: var(--red); }
+
+    /* ── Modal ───────────────────────────────────────────────────────────────── */
+    .modal-wrap {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55); z-index: 400;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-wrap.open { display: flex; }
+    .modal-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.8rem;
+      width: 100%; max-width: 460px; max-height: 92vh; overflow-y: auto;
+    }
+    .modal-box h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .modal-sub    { font-size: 0.8rem; color: var(--text2); margin-bottom: 1.4rem; }
+
+    /* Tabs del modal */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.4rem; }
+    .tab-btn {
+      flex: 1; background: none; border: none; border-bottom: 2px solid transparent;
+      padding: 0.55rem; font-size: 0.83rem; font-weight: 600;
+      color: var(--text2); cursor: pointer; transition: color 0.15s, border-color 0.15s;
+      margin-bottom: -1px;
+    }
+    .tab-btn.active { color: var(--indigo); border-bottom-color: var(--indigo); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .field { margin-bottom: 1.1rem; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .field input[type="text"] {
+      width: 100%; border: 1.5px solid var(--border);
+      background: var(--bg); color: var(--text);
+      border-radius: 8px; padding: 0.52rem 0.75rem;
+      font-size: 0.85rem; transition: border-color 0.15s;
+    }
+    .field input[type="text"]:focus { outline: none; border-color: var(--indigo); }
+    .field .hint { font-size: 0.74rem; color: var(--text2); margin-top: 0.3rem; line-height: 1.45; }
+    .field .hint a { color: var(--indigo); }
+
+    /* Upload zona imagen */
+    .img-upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px; padding: 1.2rem;
+      text-align: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      font-size: 0.82rem; color: var(--text2);
+    }
+    .img-upload-zone:hover { border-color: var(--indigo); background: rgba(99,102,241,0.05); }
+    .img-upload-zone img { max-height: 80px; border-radius: 6px; margin-bottom: 0.5rem; display: block; margin: 0 auto 0.5rem; }
+
+    /* Preview de fondo */
+    #bg-preview {
+      width: 100%; height: 80px; border-radius: 8px;
+      object-fit: cover; display: none; margin-bottom: 0.6rem;
+    }
+    #bg-preview.visible { display: block; }
+
+    .modal-footer {
+      display: flex; justify-content: flex-end;
+      gap: 0.6rem; margin-top: 1.5rem; flex-wrap: wrap;
+    }
+
+    /* ── Impresión ───────────────────────────────────────────────────────────── */
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area {
+        position: fixed; inset: 0;
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        padding: 2rem;
+      }
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      header { padding: 0 0.8rem; height: 52px; }
+      .header-title { font-size: 0.88rem; }
+      .hbtn span { display: none; }          /* solo icono en móvil */
+      .container { padding: 0 0.75rem; margin-top: 1rem; }
+      .card { padding: 1.1rem; }
+      .toolbar { gap: 0.4rem; }
+      .toolbar-right { width: 100%; justify-content: flex-end; }
+      .btn { font-size: 0.78rem; padding: 0.5rem 0.75rem; }
+      .btn-gdrive img { display: none; }
+      .qr-wrap { flex-direction: column; align-items: center; }
+      #qr-img { max-width: 200px; }
+    }
+    @media (max-width: 380px) {
+      .toolbar-right { gap: 0.35rem; }
+      .btn { padding: 0.45rem 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<header>
+  <img id="header-logo" class="header-logo" src="" alt="logo" />
+  <span class="header-title" id="header-title">Panel de Administración</span>
+  <div class="header-actions">
+    <button class="theme-toggle" id="btn-theme" title="Cambiar tema">🌙 <span id="theme-label">Dark</span></button>
+    <button class="hbtn" id="btn-personalizar">🎨 <span>Personalizar</span></button>
+    <button class="hbtn" id="btn-cfg-gdrive">☁️ <span>Google Drive</span></button>
+  </div>
+</header>
+
+<!-- ── Contenedor principal ──────────────────────────────────────────────── -->
+<div class="container">
+
+  <!-- QR -->
+  <div class="card">
+    <div class="card-title">Sesión de carga</div>
+    <button class="btn btn-primary" id="btn-generar">✚ Generar nuevo QR</button>
+    <div class="qr-wrap" id="qr-section" style="display:none">
+      <img id="qr-img" width="160" height="160" alt="QR" />
+      <div class="qr-meta">
+        <div class="lbl">Compartí este QR o enlace con los usuarios:</div>
+        <div class="url-box" id="url-texto"></div>
+        <span class="badge-live"><span class="dot"></span>Sesión activa</span>
+        <div style="margin-top:0.9rem">
+          <button class="btn btn-ghost" id="btn-print-qr">🖨️ Imprimir QR</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fotos -->
+  <div class="card" id="card-fotos" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span style="font-size:0.9rem">Fotos: <span class="foto-count" id="contador">0</span></span>
+        <span id="sel-badge">0 sel.</span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn btn-ghost"  id="btn-sel-all" disabled>Sel. todo</button>
+        <button class="btn btn-danger" id="btn-quitar"  disabled>🗑 Eliminar</button>
+        <button class="btn btn-ghost"  id="btn-download" disabled>💻 Guardar en PC</button>
+        <button class="btn btn-gdrive" id="btn-gdrive"  disabled>
+          <img src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" width="16" height="16" alt="" />
+          Google Drive
+        </button>
+      </div>
+    </div>
+    <div class="grid" id="grid">
+      <div class="empty-state"><div class="ei">🖼️</div>Esperando fotos…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Overlay progreso ───────────────────────────────────────────────────── -->
+<div id="upload-overlay">
+  <div class="upload-box">
+    <div class="ei">☁️</div>
+    <p>Subiendo fotos a Google Drive…</p>
+    <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
+    <div id="upload-status">0 / 0</div>
+  </div>
+</div>
+
+<!-- ── Lightbox ───────────────────────────────────────────────────────────── -->
+<div id="lightbox">
+  <span id="lb-close">&times;</span>
+  <button class="lb-nav" id="lb-prev">‹</button>
+  <img id="lb-img" src="" alt="" />
+  <button class="lb-nav" id="lb-next">›</button>
+</div>
+
+<!-- ── Toast ──────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ── Modal Personalización ──────────────────────────────────────────────── -->
+<div class="modal-wrap" id="modal-custom">
+  <div class="modal-box">
+    <h3>🎨 Personalización</h3>
+    <p class="modal-sub">Los cambios se guardan en tu navegador.</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="apariencia">🎨 Apariencia</button>
+      <button class="tab-btn" data-tab="logo">🖼️ Logo</button>
+      <button class="tab-btn" data-tab="fondo">🏞️ Fondo</button>
+    </div>
+
+    <!-- Tab: Apariencia -->
+    <div class="tab-panel active" id="tab-apariencia">
+      <div class="field">
+        <label>Título del panel</label>
+        <input type="text" id="cfg-titulo" placeholder="Panel de Administración" />
+      </div>
+      <div class="field">
+        <label>Tema de color</label>
+        <div style="display:flex;gap:0.7rem;margin-top:0.3rem">
+          <button class="btn btn-ghost" id="theme-dark-btn"  style="flex:1">🌙 Dark</button>
+          <button class="btn btn-ghost" id="theme-light-btn" style="flex:1">☀️ Light</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Logo -->
+    <div class="tab-panel" id="tab-logo">
+      <div class="field">
+        <label>Logo del encabezado</label>
+        <div class="img-upload-zone" id="logo-zone">
+          <img id="logo-preview" src="" alt="" style="display:none;max-height:70px;border-radius:6px;margin:0 auto 0.5rem" />
+          <div id="logo-placeholder">📁 Tocá para subir tu logo<br><span style="font-size:0.72rem">(PNG, SVG, JPG — máx. 2 MB)</span></div>
+        </div>
+        <input type="file" id="logo-input" accept="image/*" />
+      </div>
+      <button class="btn btn-ghost" id="btn-logo-clear" style="width:100%;justify-content:center">✕ Quitar logo</button>
+    </div>
+
+    <!-- Tab: Fondo -->
+    <div class="tab-panel" id="tab-fondo">
+      <div class="field">
+        <label>Imagen de fondo</label>
+        <img id="bg-preview" src="" alt="preview fondo" />
+        <div class="img-upload-zone" id="bg-zone">
+          📁 Tocá para subir imagen de fondo<br>
+          <span style="font-size:0.72rem">(JPG, PNG, WebP — recomendado 1920×1080)</span>
+        </div>
+        <input type="file" id="bg-input" accept="image/*" />
+      </div>
+      <div class="field">
+        <label>Opacidad del fondo</label>
+        <input type="range" id="bg-opacity" min="0" max="80" value="40" style="width:100%;margin-top:0.3rem" />
+        <div style="font-size:0.75rem;color:var(--text2);margin-top:0.2rem">Oscurecimiento: <span id="opacity-val">40</span>%</div>
+      </div>
+      <button class="btn btn-ghost" id="btn-bg-clear" style="width:100%;justify-content:center">✕ Quitar fondo</button>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost"   id="btn-custom-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="btn-custom-save">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Google Drive ──────────────────────────────────────────────────── -->
+<div class="modal-wrap" id="modal-gdrive">
+  <div class="modal-box">
+    <h3>☁️ Configurar Google Drive</h3>
+    <p class="modal-sub">El Client ID se guarda en tu navegador. Solo lo configurás una vez.</p>
+    <div class="field">
+      <label>Google OAuth Client ID</label>
+      <input type="text" id="cfg-client-id" placeholder="xxxxxxxx.apps.googleusercontent.com" />
+      <div class="hint">
+        1. Abrí <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a><br>
+        2. Creá un proyecto → <strong>Credenciales → ID de cliente OAuth</strong><br>
+        3. Tipo: <strong>Aplicación web</strong> → Origen: <code>http://localhost:3000</code><br>
+        4. Pegá el <strong>Client ID</strong> aquí arriba
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"   id="btn-gdrive-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="btn-gdrive-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMA
+// ══════════════════════════════════════════════════════════════════════════════
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-label').textContent = t === 'dark' ? 'Dark' : 'Light';
+  document.getElementById('btn-theme').textContent = t === 'dark' ? '🌙 Dark' : '☀️ Light';
+  localStorage.setItem('theme', t);
+}
+
+document.getElementById('btn-theme').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+});
+document.getElementById('theme-dark-btn').addEventListener('click',  () => applyTheme('dark'));
+document.getElementById('theme-light-btn').addEventListener('click', () => applyTheme('light'));
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PERSONALIZACIÓN
+// ══════════════════════════════════════════════════════════════════════════════
+function applyCustom() {
+  const titulo  = localStorage.getItem('titulo')  || 'Panel de Administración';
+  const logo    = localStorage.getItem('logo')    || '';
+  const bgImg   = localStorage.getItem('bg_img')  || '';
+  const bgOpac  = localStorage.getItem('bg_opac') ?? '40';
+
+  document.getElementById('header-title').textContent = titulo;
+  document.title = titulo;
+
+  const logoEl = document.getElementById('header-logo');
+  if (logo) { logoEl.src = logo; logoEl.classList.add('visible'); }
+  else       { logoEl.classList.remove('visible'); }
+
+  if (bgImg) {
+    document.body.style.backgroundImage = `url(${bgImg})`;
+    document.body.classList.add('has-bg');
+    document.body.style.setProperty('--overlay-opacity', bgOpac / 100);
+    // overlay oscuro
+    let overlay = document.getElementById('bg-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'bg-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:-1;pointer-events:none;transition:background 0.3s';
+      document.body.prepend(overlay);
+    }
+    overlay.style.background = `rgba(0,0,0,${bgOpac / 100})`;
+  } else {
+    document.body.style.backgroundImage = '';
+    document.body.classList.remove('has-bg');
+    const overlay = document.getElementById('bg-overlay');
+    if (overlay) overlay.remove();
+  }
+}
+
+// Abrir modal
+document.getElementById('btn-personalizar').addEventListener('click', () => {
+  document.getElementById('cfg-titulo').value = localStorage.getItem('titulo') || '';
+  const logo   = localStorage.getItem('logo')    || '';
+  const bgImg  = localStorage.getItem('bg_img')  || '';
+  const bgOpac = localStorage.getItem('bg_opac') ?? '40';
+
+  const logoPreview = document.getElementById('logo-preview');
+  const logoPlaceholder = document.getElementById('logo-placeholder');
+  if (logo) { logoPreview.src = logo; logoPreview.style.display = 'block'; logoPlaceholder.style.display = 'none'; }
+  else       { logoPreview.style.display = 'none'; logoPlaceholder.style.display = 'block'; }
+
+  const bgPreview = document.getElementById('bg-preview');
+  if (bgImg) { bgPreview.src = bgImg; bgPreview.classList.add('visible'); }
+  else        { bgPreview.classList.remove('visible'); }
+
+  document.getElementById('bg-opacity').value = bgOpac;
+  document.getElementById('opacity-val').textContent = bgOpac;
+
+  document.getElementById('modal-custom').classList.add('open');
+});
+document.getElementById('btn-custom-cancel').addEventListener('click', () =>
+  document.getElementById('modal-custom').classList.remove('open'));
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Logo upload
+document.getElementById('logo-zone').addEventListener('click', () =>
+  document.getElementById('logo-input').click());
+document.getElementById('logo-input').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Logo demasiado grande (máx 2 MB)', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('logo-preview').src = ev.target.result;
+    document.getElementById('logo-preview').style.display = 'block';
+    document.getElementById('logo-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+document.getElementById('btn-logo-clear').addEventListener('click', () => {
+  document.getElementById('logo-preview').style.display = 'none';
+  document.getElementById('logo-placeholder').style.display = 'block';
+  document.getElementById('logo-preview').src = '';
+});
+
+// Fondo upload
+document.getElementById('bg-zone').addEventListener('click', () =>
+  document.getElementById('bg-input').click());
+document.getElementById('bg-input').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const preview = document.getElementById('bg-preview');
+    preview.src = ev.target.result;
+    preview.classList.add('visible');
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+document.getElementById('btn-bg-clear').addEventListener('click', () => {
+  document.getElementById('bg-preview').src = '';
+  document.getElementById('bg-preview').classList.remove('visible');
+});
+
+// Slider opacidad
+document.getElementById('bg-opacity').addEventListener('input', e => {
+  document.getElementById('opacity-val').textContent = e.target.value;
+});
+
+// Guardar personalización
+document.getElementById('btn-custom-save').addEventListener('click', () => {
+  const titulo  = document.getElementById('cfg-titulo').value.trim() || 'Panel de Administración';
+  const logoSrc = document.getElementById('logo-preview').src;
+  const bgSrc   = document.getElementById('bg-preview').src;
+  const bgOpac  = document.getElementById('bg-opacity').value;
+
+  localStorage.setItem('titulo',  titulo);
+  localStorage.setItem('bg_opac', bgOpac);
+
+  // logo
+  if (logoSrc && logoSrc.startsWith('data:')) localStorage.setItem('logo', logoSrc);
+  else if (!logoSrc || logoSrc === window.location.href) localStorage.removeItem('logo');
+
+  // fondo
+  if (bgSrc && bgSrc.startsWith('data:')) localStorage.setItem('bg_img', bgSrc);
+  else localStorage.removeItem('bg_img');
+
+  applyCustom();
+  document.getElementById('modal-custom').classList.remove('open');
+  toast('✅ Personalización guardada', 'ok');
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GOOGLE DRIVE CONFIG
+// ══════════════════════════════════════════════════════════════════════════════
+const getClientId = () => localStorage.getItem('g_client_id') || '';
+
+document.getElementById('btn-cfg-gdrive').addEventListener('click', () => {
+  document.getElementById('cfg-client-id').value = getClientId();
+  document.getElementById('modal-gdrive').classList.add('open');
+});
+document.getElementById('btn-gdrive-cancel').addEventListener('click', () =>
+  document.getElementById('modal-gdrive').classList.remove('open'));
+document.getElementById('btn-gdrive-save').addEventListener('click', () => {
+  localStorage.setItem('g_client_id', document.getElementById('cfg-client-id').value.trim());
+  document.getElementById('modal-gdrive').classList.remove('open');
+  toast('✅ Client ID guardado', 'ok');
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ESTADO PRINCIPAL
+// ══════════════════════════════════════════════════════════════════════════════
+let sessionId    = null;
+let polling      = null;
+let fotos        = [];
+let lightboxIdx  = 0;
+
+// ── QR ────────────────────────────────────────────────────────────────────────
+document.getElementById('btn-generar').addEventListener('click', async () => {
+  if (polling) clearInterval(polling);
+  fotos = [];
+  renderGrid();
+  const data = await fetch('/api/nueva-sesion').then(r => r.json());
+  sessionId = data.sessionId;
+  document.getElementById('qr-img').src = data.qr;
+  document.getElementById('url-texto').textContent = data.uploadUrl;
+  document.getElementById('qr-section').style.display = 'flex';
+  document.getElementById('card-fotos').style.display = 'block';
+  polling = setInterval(pollFotos, 3000);
+  pollFotos();
+});
+
+async function pollFotos() {
+  if (!sessionId) return;
+  const { fotos: nuevas } = await fetch(`/api/fotos/${sessionId}`).then(r => r.json());
+  const conocidas = new Set(fotos.map(f => f.src));
+  const agregadas = nuevas.filter(s => !conocidas.has(s));
+  if (!agregadas.length) return;
+  agregadas.forEach(src => fotos.push({ src, selected: false }));
+  renderGrid();
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  if (!fotos.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="ei">🖼️</div>Esperando fotos…</div>';
+    syncToolbar(); return;
+  }
+  fotos.forEach((foto, i) => {
+    const item = document.createElement('div');
+    item.className = 'foto-item' + (foto.selected ? ' selected' : '');
+    const img = document.createElement('img');
+    img.src = foto.src; img.alt = '';  img.draggable = false;
+    const chk = document.createElement('div');
+    chk.className = 'foto-check';
+    const num = document.createElement('div');
+    num.className = 'foto-num'; num.textContent = i + 1;
+    item.append(img, chk, num);
+
+    let pressTimer;
+    item.addEventListener('pointerdown', () => { pressTimer = setTimeout(() => openLightbox(i), 500); });
+    item.addEventListener('pointerup',   () => clearTimeout(pressTimer));
+    item.addEventListener('pointermove', () => clearTimeout(pressTimer));
+    item.addEventListener('click', () => {
+      foto.selected = !foto.selected;
+      item.classList.toggle('selected', foto.selected);
+      syncToolbar();
+    });
+    grid.appendChild(item);
+  });
+  document.getElementById('contador').textContent = fotos.length;
+  syncToolbar();
+}
+
+function syncToolbar() {
+  const sel      = fotos.filter(f => f.selected);
+  const hayFotos = fotos.length > 0;
+  const haySel   = sel.length > 0;
+  const badge    = document.getElementById('sel-badge');
+  badge.textContent = `${sel.length} sel.`;
+  badge.classList.toggle('visible', haySel);
+  document.getElementById('btn-sel-all').disabled = !hayFotos;
+  document.getElementById('btn-quitar').disabled  = !haySel;
+  document.getElementById('btn-download').disabled = !haySel;
+  document.getElementById('btn-gdrive').disabled  = !haySel;
+  document.getElementById('btn-sel-all').textContent =
+    hayFotos && sel.length === fotos.length ? 'Desel. todo' : 'Sel. todo';
+}
+
+document.getElementById('btn-sel-all').addEventListener('click', () => {
+  const allOn = fotos.every(f => f.selected);
+  fotos.forEach(f => f.selected = !allOn);
+  renderGrid();
+});
+
+// Eliminar del servidor
+document.getElementById('btn-quitar').addEventListener('click', async () => {
+  const sel = fotos.filter(f => f.selected);
+  if (!sel.length) return;
+  const archivos = sel.map(f => f.src.split('/').pop());
+  try {
+    const res  = await fetch(`/api/fotos/${sessionId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ archivos }),
+    });
+    const data = await res.json();
+    fotos = fotos.filter(f => !f.selected);
+    renderGrid();
+    const n = sel.length;
+    if (!data.fail) toast(`🗑 ${n} foto${n>1?'s':''} eliminada${n>1?'s':''} del servidor`, 'ok');
+    else            toast(`⚠️ ${data.ok} ok, ${data.fail} con error`, 'err');
+  } catch { toast('❌ Error al eliminar', 'err'); }
+});
+
+// Guardar en la PC
+document.getElementById('btn-download').addEventListener('click', async () => {
+  const sel = fotos.filter(f => f.selected);
+  if (!sel.length) return;
+  for (const foto of sel) {
+    const nombre = foto.src.split('/').pop();
+    const a = document.createElement('a');
+    a.href = foto.src;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    await new Promise(r => setTimeout(r, 300)); // evita que el navegador bloquee descargas simultáneas
+  }
+  toast(`💻 ${sel.length} foto${sel.length>1?'s':''} descargada${sel.length>1?'s':''}`, 'ok');
+});
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+function openLightbox(idx) {
+  lightboxIdx = idx;
+  document.getElementById('lb-img').src = fotos[idx].src;
+  document.getElementById('lightbox').classList.add('open');
+}
+document.getElementById('lb-close').addEventListener('click', () =>
+  document.getElementById('lightbox').classList.remove('open'));
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+document.getElementById('lb-prev').addEventListener('click', () => {
+  lightboxIdx = (lightboxIdx - 1 + fotos.length) % fotos.length;
+  document.getElementById('lb-img').src = fotos[lightboxIdx].src;
+});
+document.getElementById('lb-next').addEventListener('click', () => {
+  lightboxIdx = (lightboxIdx + 1) % fotos.length;
+  document.getElementById('lb-img').src = fotos[lightboxIdx].src;
+});
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'ArrowLeft')  document.getElementById('lb-prev').click();
+  if (e.key === 'ArrowRight') document.getElementById('lb-next').click();
+  if (e.key === 'Escape')     document.getElementById('lightbox').classList.remove('open');
+});
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3500);
+}
+
+// ── Google Drive ──────────────────────────────────────────────────────────────
+let gToken = null;
+
+function pedirToken() {
+  const clientId = getClientId();
+  if (!clientId) {
+    toast('⚠️ Configurá primero el Client ID de Google', 'err');
+    document.getElementById('modal-gdrive').classList.add('open');
+    return Promise.resolve(null);
+  }
+  return new Promise(resolve => {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: r => resolve(r.error ? null : r.access_token),
+    });
+    client.requestAccessToken();
+  });
+}
+
+async function subirADrive() {
+  if (!gToken) gToken = await pedirToken();
+  if (!gToken) return;
+
+  const seleccionadas = fotos.filter(f => f.selected);
+  const overlay  = document.getElementById('upload-overlay');
+  const progFill = document.getElementById('prog-fill');
+  const status   = document.getElementById('upload-status');
+
+  overlay.classList.add('open');
+  progFill.style.width = '0%';
+
+  // Buscar o crear carpeta "Fotos Web"
+  let folderId;
+  try {
+    const q   = encodeURIComponent(`name='Fotos Web' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}`, {
+      headers: { Authorization: `Bearer ${gToken}` },
+    });
+    const data = await res.json();
+    folderId = data.files?.length ? data.files[0].id : null;
+    if (!folderId) {
+      const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Fotos Web', mimeType: 'application/vnd.google-apps.folder' }),
+      });
+      folderId = (await cr.json()).id;
+    }
+  } catch { folderId = null; }
+
+  let ok = 0, fail = 0;
+  const subidas = [];
+  for (let i = 0; i < seleccionadas.length; i++) {
+    const foto = seleccionadas[i];
+    status.textContent = `${i + 1} / ${seleccionadas.length}`;
+    progFill.style.width = `${Math.round((i / seleccionadas.length) * 100)}%`;
+    try {
+      const blob = await fetch(foto.src).then(r => r.blob());
+      const name = foto.src.split('/').pop();
+      const meta = { name, mimeType: blob.type };
+      if (folderId) meta.parents = [folderId];
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+      form.append('file', blob);
+      const up = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST', headers: { Authorization: `Bearer ${gToken}` }, body: form,
+      });
+      if (up.status === 401) {
+        gToken = await pedirToken();
+        if (!gToken) { overlay.classList.remove('open'); return; }
+        i--; continue;
+      }
+      if (!up.ok) throw new Error();
+      ok++;
+      subidas.push(name);
+    } catch { fail++; }
+  }
+
+  progFill.style.width = '100%';
+  await new Promise(r => setTimeout(r, 400));
+  overlay.classList.remove('open');
+
+  // Borrar del servidor las que sí se subieron a Drive con éxito
+  if (subidas.length) {
+    try {
+      await fetch(`/api/fotos/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archivos: subidas }),
+      });
+    } catch { /* si falla el borrado, las fotos quedan y se listan igual */ }
+    fotos = fotos.filter(f => !subidas.includes(f.src.split('/').pop()));
+  }
+
+  if (!fail) {
+    toast(`✅ ${ok} foto${ok>1?'s':''} subida${ok>1?'s':''} a Drive y quitada${ok>1?'s':''} de la web`, 'ok');
+  } else {
+    toast(`⚠️ ${ok} ok, ${fail} con error`, 'err');
+  }
+  fotos.forEach(f => f.selected = false);
+  renderGrid();
+}
+
+document.getElementById('btn-gdrive').addEventListener('click', subirADrive);
+
+// ── Imprimir QR ───────────────────────────────────────────────────────────────
+document.getElementById('btn-print-qr').addEventListener('click', () => {
+  const qrSrc  = document.getElementById('qr-img').src;
+  const urlTxt = document.getElementById('url-texto').textContent;
+  const titulo = localStorage.getItem('titulo') || 'Subí tus fotos';
+  const logo   = localStorage.getItem('logo')   || '';
+
+  // Crear área de impresión temporal
+  let area = document.getElementById('print-area');
+  if (area) area.remove();
+
+  area = document.createElement('div');
+  area.id = 'print-area';
+  area.style.display = 'none';
+  area.innerHTML = `
+    <div style="text-align:center;font-family:system-ui,sans-serif;max-width:400px">
+      ${logo ? `<img src="${logo}" style="height:56px;object-fit:contain;margin-bottom:1rem" alt="logo" />` : ''}
+      <h2 style="font-size:1.3rem;margin-bottom:0.4rem;color:#1f2937">${titulo}</h2>
+      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:1.2rem">
+        Escaneá el código QR con tu celular para subir fotos
+      </p>
+      <img src="${qrSrc}" style="width:240px;height:240px;border:3px solid #e5e7eb;border-radius:10px" />
+      <p style="font-size:0.72rem;color:#9ca3af;margin-top:0.9rem;word-break:break-all">${urlTxt}</p>
+    </div>`;
+  document.body.appendChild(area);
+  window.print();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT — cargar preferencias guardadas
+// ══════════════════════════════════════════════════════════════════════════════
+(function init() {
+  applyTheme(localStorage.getItem('theme') || 'dark');
+  applyCustom();
+})();
+</script>
+</body>
+</html>
