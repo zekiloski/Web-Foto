@@ -1,0 +1,38 @@
+1. Crear la app Node.js en hPanel
+
+Entrá a hPanel → tu dominio → Avanzado → Node.js (o "Website → Node.js App").
+Clic en "Crear aplicación".
+Versión de Node: elegí la LTS más reciente disponible (18 o 20).
+Raíz de la aplicación: una carpeta dentro de tu hosting, ej. webfoto (no hace falta que coincida con public_html).
+URL de la aplicación: seleccioná tu dominio (o subdominio si preferís, ej. fotos.tudominio.com).
+Archivo de inicio: server.js.
+Guardá/Creá la app.
+2. Conectar el repositorio de GitHub
+
+Dentro de la misma app Node.js, buscá la sección "Git" (en algunos planes está en el mismo panel de la app, en otros en "Avanzado → Git").
+Repositorio: https://github.com/zekiloski/Web-Foto.git
+Rama: main
+Ruta de despliegue: la misma carpeta que pusiste como "Raíz de la aplicación".
+Clic en "Desplegar" (Deploy) para traer el código por primera vez.
+3. Instalar dependencias
+
+En el panel de la app Node.js, buscá el botón "Ejecutar NPM Install" (o similar) y ejecutalo. Si tu plan da acceso SSH, alternativa: cd ~/webfoto && npm install.
+4. Variables de entorno / puerto
+
+Hostinger asigna el puerto automáticamente y lo inyecta como PORT — no necesitás configurar nada extra, el código ya usa process.env.PORT.
+5. Iniciar/Reiniciar la app
+
+Botón "Reiniciar" en el panel de Node.js.
+6. Activar SSL en el dominio
+
+hPanel → SSL → activá el certificado gratuito (Let's Encrypt) para tu dominio. Es obligatorio: sin HTTPS, Google va a volver a bloquear el login de Drive igual que con la IP.
+7. Actualizar el origen autorizado en Google Cloud
+
+Google Cloud Console → Auth Platform → Clientes → "Web-Foto" → Orígenes de JavaScript autorizados → agregá:
+
+https://tudominio.com
+(o https://fotos.tudominio.com si usaste subdominio). Guardá y esperá 1-2 minutos.
+8. Probar
+
+Abrí https://tudominio.com/admin.html, generá un QR (va a mostrar tu dominio, no una IP), subí una foto de prueba desde el celular, y probá el botón de Google Drive.
+Decime tu dominio real cuando lo tengas configurado y verificamos juntos que el QR y el login de Drive apunten bien.
