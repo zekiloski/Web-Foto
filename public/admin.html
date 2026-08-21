@@ -591,13 +591,21 @@ document.getElementById('theme-dark-btn').addEventListener('click',  () => apply
 document.getElementById('theme-light-btn').addEventListener('click', () => applyTheme('light'));
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PERSONALIZACIÓN
+// PERSONALIZACIÓN (guardada en el servidor, visible para todos)
 // ══════════════════════════════════════════════════════════════════════════════
+let customCfg = { titulo: '', logo: '', bg_img: '', bg_opac: '40' };
+
+async function loadCustom() {
+  try { customCfg = { ...customCfg, ...(await fetch('/api/config').then(r => r.json())) }; }
+  catch { /* si falla, se usan los valores por defecto */ }
+  applyCustom();
+}
+
 function applyCustom() {
-  const titulo  = localStorage.getItem('titulo')  || 'Panel de Administración';
-  const logo    = localStorage.getItem('logo')    || '';
-  const bgImg   = localStorage.getItem('bg_img')  || '';
-  const bgOpac  = localStorage.getItem('bg_opac') ?? '40';
+  const titulo  = customCfg.titulo  || 'Panel de Administración';
+  const logo    = customCfg.logo    || '';
+  const bgImg   = customCfg.bg_img  || '';
+  const bgOpac  = customCfg.bg_opac ?? '40';
 
   document.getElementById('header-title').textContent = titulo;
   document.title = titulo;
@@ -629,10 +637,10 @@ function applyCustom() {
 
 // Abrir modal
 document.getElementById('btn-personalizar').addEventListener('click', () => {
-  document.getElementById('cfg-titulo').value = localStorage.getItem('titulo') || '';
-  const logo   = localStorage.getItem('logo')    || '';
-  const bgImg  = localStorage.getItem('bg_img')  || '';
-  const bgOpac = localStorage.getItem('bg_opac') ?? '40';
+  document.getElementById('cfg-titulo').value = customCfg.titulo || '';
+  const logo   = customCfg.logo    || '';
+  const bgImg  = customCfg.bg_img  || '';
+  const bgOpac = customCfg.bg_opac ?? '40';
 
   const logoPreview = document.getElementById('logo-preview');
   const logoPlaceholder = document.getElementById('logo-placeholder');
@@ -707,26 +715,31 @@ document.getElementById('bg-opacity').addEventListener('input', e => {
 });
 
 // Guardar personalización
-document.getElementById('btn-custom-save').addEventListener('click', () => {
+document.getElementById('btn-custom-save').addEventListener('click', async () => {
   const titulo  = document.getElementById('cfg-titulo').value.trim() || 'Panel de Administración';
   const logoSrc = document.getElementById('logo-preview').src;
   const bgSrc   = document.getElementById('bg-preview').src;
   const bgOpac  = document.getElementById('bg-opacity').value;
 
-  localStorage.setItem('titulo',  titulo);
-  localStorage.setItem('bg_opac', bgOpac);
+  customCfg = {
+    titulo,
+    logo:   (logoSrc && logoSrc.startsWith('data:')) ? logoSrc : '',
+    bg_img: (bgSrc   && bgSrc.startsWith('data:'))   ? bgSrc   : '',
+    bg_opac: bgOpac,
+  };
 
-  // logo
-  if (logoSrc && logoSrc.startsWith('data:')) localStorage.setItem('logo', logoSrc);
-  else if (!logoSrc || logoSrc === window.location.href) localStorage.removeItem('logo');
-
-  // fondo
-  if (bgSrc && bgSrc.startsWith('data:')) localStorage.setItem('bg_img', bgSrc);
-  else localStorage.removeItem('bg_img');
-
-  applyCustom();
-  document.getElementById('modal-custom').classList.remove('open');
-  toast('✅ Personalización guardada', 'ok');
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(customCfg),
+    });
+    applyCustom();
+    document.getElementById('modal-custom').classList.remove('open');
+    toast('✅ Personalización guardada', 'ok');
+  } catch {
+    toast('❌ No se pudo guardar la personalización', 'err');
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1045,7 +1058,7 @@ document.getElementById('btn-print-qr').addEventListener('click', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 (function init() {
   applyTheme(localStorage.getItem('theme') || 'dark');
-  applyCustom();
+  loadCustom();
 })();
 </script>
 </body>

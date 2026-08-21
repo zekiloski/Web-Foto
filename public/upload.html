@@ -31,7 +31,12 @@
       flex-direction: column;
       align-items: center;
       padding: 2rem 1rem 6rem;
+      background-attachment: fixed;
+      background-size: cover;
+      background-position: center;
     }
+    #bg-overlay { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+    .logo-img { height: 3rem; object-fit: contain; margin-bottom: 0.4rem; }
 
     /* ── Header ── */
     .logo { font-size: 3rem; margin-bottom: 0.4rem; }
@@ -223,8 +228,8 @@
 </head>
 <body>
 
-  <div class="logo">📸</div>
-  <h1>Subir Fotos</h1>
+  <div class="logo" id="logo-emoji">📸</div>
+  <h1 id="page-title">Subir Fotos</h1>
   <p class="sub">Agregá fotos, revisá la selección y subí cuando estés listo</p>
 
   <div class="add-row">
@@ -272,6 +277,26 @@
   </div>
 
 <script>
+  // ── Personalización (título, logo, fondo) guardada por el admin ──────────────
+  fetch('/api/config').then(r => r.json()).then(cfg => {
+    if (cfg.titulo) {
+      document.title = cfg.titulo;
+      document.getElementById('page-title').textContent = cfg.titulo;
+    }
+    if (cfg.logo) {
+      const img = document.createElement('img');
+      img.src = cfg.logo; img.className = 'logo-img'; img.alt = '';
+      document.getElementById('logo-emoji').replaceWith(img);
+    }
+    if (cfg.bg_img) {
+      document.body.style.backgroundImage = `url(${cfg.bg_img})`;
+      const overlay = document.createElement('div');
+      overlay.id = 'bg-overlay';
+      overlay.style.background = `rgba(0,0,0,${(cfg.bg_opac ?? 40) / 100})`;
+      document.body.prepend(overlay);
+    }
+  }).catch(() => { /* si falla, se usa el estilo por defecto */ });
+
   const sessionId = location.pathname.split('/').pop();
   let fotos = []; // { id, file, url, selected }
   let idSeq = 0;

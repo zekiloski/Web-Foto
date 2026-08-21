@@ -25,6 +25,11 @@ app.set('trust proxy', 1); // Hostinger corre la app detrás de un proxy que ter
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
+// Ensure data dir exists (personalización)
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+const configPath = path.join(dataDir, 'config.json');
+
 // Multer: store files in uploads/<sessionId>/
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -50,6 +55,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
 
 app.get('/', (req, res) => res.redirect('/admin.html'));
+
+// Personalización: leer configuración guardada
+app.get('/api/config', (req, res) => {
+  if (!fs.existsSync(configPath)) return res.json({});
+  try { res.json(JSON.parse(fs.readFileSync(configPath, 'utf8'))); }
+  catch { res.json({}); }
+});
+
+// Personalización: guardar configuración (título, logo, fondo)
+app.post('/api/config', express.json({ limit: '15mb' }), (req, res) => {
+  const { titulo, logo, bg_img, bg_opac } = req.body;
+  fs.writeFileSync(configPath, JSON.stringify({ titulo, logo, bg_img, bg_opac }));
+  res.json({ ok: true });
+});
 
 // Admin: generate new QR session
 app.get('/api/nueva-sesion', async (req, res) => {
