@@ -49,6 +49,8 @@ const upload = multer({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
 
+app.get('/', (req, res) => res.redirect('/admin.html'));
+
 // Admin: generate new QR session
 app.get('/api/nueva-sesion', async (req, res) => {
   const sessionId = uuidv4();
