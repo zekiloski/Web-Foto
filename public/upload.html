@@ -290,6 +290,7 @@
     }
     if (cfg.bg_img) {
       document.body.style.backgroundImage = `url(${cfg.bg_img})`;
+      document.body.style.backgroundPosition = cfg.bg_pos || 'center center';
       const overlay = document.createElement('div');
       overlay.id = 'bg-overlay';
       overlay.style.background = `rgba(0,0,0,${(cfg.bg_opac ?? 40) / 100})`;

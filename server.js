@@ -65,8 +65,8 @@ app.get('/api/config', (req, res) => {
 
 // Personalización: guardar configuración (título, logo, fondo)
 app.post('/api/config', express.json({ limit: '15mb' }), (req, res) => {
-  const { titulo, logo, bg_img, bg_opac } = req.body;
-  fs.writeFileSync(configPath, JSON.stringify({ titulo, logo, bg_img, bg_opac }));
+  const { titulo, logo, bg_img, bg_opac, bg_pos } = req.body;
+  fs.writeFileSync(configPath, JSON.stringify({ titulo, logo, bg_img, bg_opac, bg_pos }));
   res.json({ ok: true });
 });
 

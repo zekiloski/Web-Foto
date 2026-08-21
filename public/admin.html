@@ -367,6 +367,19 @@
     }
     #bg-preview.visible { display: block; }
 
+    /* Grilla de posición del fondo */
+    .pos-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem; margin-top: 0.4rem; max-width: 160px;
+    }
+    .pos-btn {
+      aspect-ratio: 1; border-radius: 6px;
+      border: 1.5px solid var(--border); background: var(--bg3);
+      cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    }
+    .pos-btn:hover { border-color: var(--indigo); }
+    .pos-btn.active { border-color: var(--indigo); background: var(--indigo); }
+
     .modal-footer {
       display: flex; justify-content: flex-end;
       gap: 0.6rem; margin-top: 1.5rem; flex-wrap: wrap;
@@ -536,6 +549,20 @@
         <input type="file" id="bg-input" accept="image/*" />
       </div>
       <div class="field">
+        <label>Posición del fondo</label>
+        <div class="pos-grid" id="pos-grid">
+          <button type="button" class="pos-btn" data-pos="left top"></button>
+          <button type="button" class="pos-btn" data-pos="center top"></button>
+          <button type="button" class="pos-btn" data-pos="right top"></button>
+          <button type="button" class="pos-btn" data-pos="left center"></button>
+          <button type="button" class="pos-btn" data-pos="center center"></button>
+          <button type="button" class="pos-btn" data-pos="right center"></button>
+          <button type="button" class="pos-btn" data-pos="left bottom"></button>
+          <button type="button" class="pos-btn" data-pos="center bottom"></button>
+          <button type="button" class="pos-btn" data-pos="right bottom"></button>
+        </div>
+      </div>
+      <div class="field">
         <label>Opacidad del fondo</label>
         <input type="range" id="bg-opacity" min="0" max="80" value="40" style="width:100%;margin-top:0.3rem" />
         <div style="font-size:0.75rem;color:var(--text2);margin-top:0.2rem">Oscurecimiento: <span id="opacity-val">40</span>%</div>
@@ -593,7 +620,7 @@ document.getElementById('theme-light-btn').addEventListener('click', () => apply
 // ══════════════════════════════════════════════════════════════════════════════
 // PERSONALIZACIÓN (guardada en el servidor, visible para todos)
 // ══════════════════════════════════════════════════════════════════════════════
-let customCfg = { titulo: '', logo: '', bg_img: '', bg_opac: '40' };
+let customCfg = { titulo: '', logo: '', bg_img: '', bg_opac: '40', bg_pos: 'center center' };
 
 async function loadCustom() {
   try { customCfg = { ...customCfg, ...(await fetch('/api/config').then(r => r.json())) }; }
@@ -606,6 +633,7 @@ function applyCustom() {
   const logo    = customCfg.logo    || '';
   const bgImg   = customCfg.bg_img  || '';
   const bgOpac  = customCfg.bg_opac ?? '40';
+  const bgPos   = customCfg.bg_pos  || 'center center';
 
   document.getElementById('header-title').textContent = titulo;
   document.title = titulo;
@@ -616,6 +644,7 @@ function applyCustom() {
 
   if (bgImg) {
     document.body.style.backgroundImage = `url(${bgImg})`;
+    document.body.style.backgroundPosition = bgPos;
     document.body.classList.add('has-bg');
     document.body.style.setProperty('--overlay-opacity', bgOpac / 100);
     // overlay oscuro
@@ -641,6 +670,7 @@ document.getElementById('btn-personalizar').addEventListener('click', () => {
   const logo   = customCfg.logo    || '';
   const bgImg  = customCfg.bg_img  || '';
   const bgOpac = customCfg.bg_opac ?? '40';
+  const bgPos  = customCfg.bg_pos  || 'center center';
 
   const logoPreview = document.getElementById('logo-preview');
   const logoPlaceholder = document.getElementById('logo-placeholder');
@@ -653,6 +683,8 @@ document.getElementById('btn-personalizar').addEventListener('click', () => {
 
   document.getElementById('bg-opacity').value = bgOpac;
   document.getElementById('opacity-val').textContent = bgOpac;
+
+  setBgPos(bgPos);
 
   document.getElementById('modal-custom').classList.add('open');
 });
@@ -707,6 +739,17 @@ document.getElementById('bg-input').addEventListener('change', e => {
 document.getElementById('btn-bg-clear').addEventListener('click', () => {
   document.getElementById('bg-preview').src = '';
   document.getElementById('bg-preview').classList.remove('visible');
+  setBgPos('center center');
+});
+
+// Posición del fondo
+function setBgPos(pos) {
+  document.getElementById('bg-preview').style.objectPosition = pos;
+  document.querySelectorAll('.pos-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.pos === pos));
+}
+document.querySelectorAll('.pos-btn').forEach(btn => {
+  btn.addEventListener('click', () => setBgPos(btn.dataset.pos));
 });
 
 // Slider opacidad
@@ -720,12 +763,14 @@ document.getElementById('btn-custom-save').addEventListener('click', async () =>
   const logoSrc = document.getElementById('logo-preview').src;
   const bgSrc   = document.getElementById('bg-preview').src;
   const bgOpac  = document.getElementById('bg-opacity').value;
+  const bgPos   = document.querySelector('.pos-btn.active')?.dataset.pos || 'center center';
 
   customCfg = {
     titulo,
     logo:   (logoSrc && logoSrc.startsWith('data:')) ? logoSrc : '',
     bg_img: (bgSrc   && bgSrc.startsWith('data:'))   ? bgSrc   : '',
     bg_opac: bgOpac,
+    bg_pos: bgPos,
   };
 
   try {
