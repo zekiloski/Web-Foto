@@ -921,34 +921,65 @@ document.getElementById('btn-quitar').addEventListener('click', async () => {
   } catch { toast('❌ Error al eliminar', 'err'); }
 });
 
-// Guardar en la PC
+// Guardar en la PC (con selector de carpeta si el navegador lo soporta)
 document.getElementById('btn-download').addEventListener('click', async () => {
   const sel = fotos.filter(f => f.selected);
   if (!sel.length) return;
-  for (const foto of sel) {
-    const nombre = foto.src.split('/').pop();
-    const a = document.createElement('a');
-    a.href = foto.src;
-    a.download = nombre;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    await new Promise(r => setTimeout(r, 300)); // evita que el navegador bloquee descargas simultáneas
+
+  const soportaCarpeta = 'showDirectoryPicker' in window;
+  let dirHandle = null;
+  if (soportaCarpeta) {
+    try {
+      dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    } catch {
+      return; // el usuario cerró el explorador de archivos sin elegir carpeta
+    }
   }
 
-  // Igual que con Drive: una vez guardadas, se quitan de la pantalla y del servidor
-  const archivos = sel.map(f => f.src.split('/').pop());
-  try {
-    await fetch(`/api/fotos/${sessionId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ archivos }),
-    });
-  } catch { /* si falla el borrado, las fotos quedan y se listan igual */ }
+  const guardadas = [];
+  let fail = 0;
+  for (const foto of sel) {
+    const nombre = foto.src.split('/').pop();
+    try {
+      if (dirHandle) {
+        const blob = await fetch(foto.src).then(r => r.blob());
+        const fileHandle = await dirHandle.getFileHandle(nombre, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } else {
+        // Navegador sin selector de carpeta (Firefox, Safari): descarga tradicional
+        const a = document.createElement('a');
+        a.href = foto.src;
+        a.download = nombre;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        await new Promise(r => setTimeout(r, 300)); // evita que el navegador bloquee descargas simultáneas
+      }
+      guardadas.push(nombre);
+    } catch { fail++; }
+  }
 
-  fotos = fotos.filter(f => !f.selected);
-  renderGrid();
-  toast(`💻 ${sel.length} foto${sel.length>1?'s':''} guardada${sel.length>1?'s':''} y quitada${sel.length>1?'s':''} de la pantalla`, 'ok');
+  // Igual que con Drive: las que se guardaron bien se quitan de la pantalla y del servidor
+  if (guardadas.length) {
+    try {
+      await fetch(`/api/fotos/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archivos: guardadas }),
+      });
+    } catch { /* si falla el borrado, las fotos quedan y se listan igual */ }
+    fotos = fotos.filter(f => !guardadas.includes(f.src.split('/').pop()));
+    renderGrid();
+  }
+
+  if (!fail) {
+    const n = guardadas.length;
+    toast(`💻 ${n} foto${n>1?'s':''} guardada${n>1?'s':''} y quitada${n>1?'s':''} de la pantalla`, 'ok');
+  } else {
+    toast(`⚠️ ${guardadas.length} ok, ${fail} con error`, 'err');
+  }
 });
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────

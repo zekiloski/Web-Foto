@@ -4,6 +4,22 @@ Registro de cambios en lenguaje simple. Orden: más reciente arriba.
 (El historial técnico completo siempre está en `git log`.)
 
 --------------------------------------------------------------------
+2026-09-03 — "Guardar en PC" abre el explorador de archivos
+--------------------------------------------------------------------
+- Al tocar "Guardar en PC" en el panel admin, ahora se abre el
+  explorador de archivos del sistema para elegir en qué carpeta
+  guardar las fotos seleccionadas (en vez de que el navegador decida
+  solo dónde guardarlas). Funciona en Chrome/Edge; en Firefox y Safari
+  (que no soportan esta función del navegador) sigue funcionando como
+  antes, con la descarga tradicional.
+- Si el usuario cierra el selector de carpeta sin elegir ninguna, no
+  se borra ni se guarda nada.
+- Archivos tocados: public/admin.html.
+- Probado con Playwright: carpeta elegida y escritura de archivos,
+  cancelar el selector (no borra nada), y navegador sin soporte
+  (cae al método anterior).
+
+--------------------------------------------------------------------
 2026-09-03 — QR fijo por evento + compresión + descarga que limpia pantalla
 --------------------------------------------------------------------
 - El panel admin ahora usa un ÚNICO QR fijo, guardado en el servidor
