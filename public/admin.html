@@ -506,6 +506,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="apariencia">🎨 Apariencia</button>
       <button class="tab-btn" data-tab="logo">🖼️ Logo</button>
+      <button class="tab-btn" data-tab="portada">📸 Portada</button>
       <button class="tab-btn" data-tab="fondo">🏞️ Fondo</button>
     </div>
 
@@ -535,6 +536,20 @@
         <input type="file" id="logo-input" accept="image/*" />
       </div>
       <button class="btn btn-ghost" id="btn-logo-clear" style="width:100%;justify-content:center">✕ Quitar logo</button>
+    </div>
+
+    <!-- Tab: Portada -->
+    <div class="tab-panel" id="tab-portada">
+      <div class="field">
+        <label>Imagen de portada (página de Inicio)</label>
+        <div class="img-upload-zone" id="portada-zone">
+          <img id="portada-preview" src="" alt="" style="display:none;max-height:70px;border-radius:6px;margin:0 auto 0.5rem" />
+          <div id="portada-placeholder">📁 Tocá para subir la foto del DJ<br><span style="font-size:0.72rem">(JPG, PNG, WebP — recomendado 1920×1080 o vertical)</span></div>
+        </div>
+        <input type="file" id="portada-input" accept="image/*" />
+        <div class="hint">Se muestra a pantalla completa en la página de Inicio (la web pública, no este panel).</div>
+      </div>
+      <button class="btn btn-ghost" id="btn-portada-clear" style="width:100%;justify-content:center">✕ Quitar portada</button>
     </div>
 
     <!-- Tab: Fondo -->
@@ -620,7 +635,7 @@ document.getElementById('theme-light-btn').addEventListener('click', () => apply
 // ══════════════════════════════════════════════════════════════════════════════
 // PERSONALIZACIÓN (guardada en el servidor, visible para todos)
 // ══════════════════════════════════════════════════════════════════════════════
-let customCfg = { titulo: '', logo: '', bg_img: '', bg_opac: '40', bg_pos: 'center center' };
+let customCfg = { titulo: '', logo: '', portada_img: '', bg_img: '', bg_opac: '40', bg_pos: 'center center' };
 
 async function loadCustom() {
   try { customCfg = { ...customCfg, ...(await fetch('/api/config').then(r => r.json())) }; }
@@ -677,6 +692,12 @@ document.getElementById('btn-personalizar').addEventListener('click', () => {
   if (logo) { logoPreview.src = logo; logoPreview.style.display = 'block'; logoPlaceholder.style.display = 'none'; }
   else       { logoPreview.style.display = 'none'; logoPlaceholder.style.display = 'block'; }
 
+  const portada = customCfg.portada_img || '';
+  const portadaPreview = document.getElementById('portada-preview');
+  const portadaPlaceholder = document.getElementById('portada-placeholder');
+  if (portada) { portadaPreview.src = portada; portadaPreview.style.display = 'block'; portadaPlaceholder.style.display = 'none'; }
+  else          { portadaPreview.style.display = 'none'; portadaPlaceholder.style.display = 'block'; }
+
   const bgPreview = document.getElementById('bg-preview');
   if (bgImg) { bgPreview.src = bgImg; bgPreview.classList.add('visible'); }
   else        { bgPreview.classList.remove('visible'); }
@@ -722,6 +743,26 @@ document.getElementById('btn-logo-clear').addEventListener('click', () => {
   document.getElementById('logo-preview').src = '';
 });
 
+// Portada upload
+document.getElementById('portada-zone').addEventListener('click', () =>
+  document.getElementById('portada-input').click());
+document.getElementById('portada-input').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('portada-preview').src = ev.target.result;
+    document.getElementById('portada-preview').style.display = 'block';
+    document.getElementById('portada-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+document.getElementById('btn-portada-clear').addEventListener('click', () => {
+  document.getElementById('portada-preview').style.display = 'none';
+  document.getElementById('portada-placeholder').style.display = 'block';
+  document.getElementById('portada-preview').src = '';
+});
+
 // Fondo upload
 document.getElementById('bg-zone').addEventListener('click', () =>
   document.getElementById('bg-input').click());
@@ -759,16 +800,18 @@ document.getElementById('bg-opacity').addEventListener('input', e => {
 
 // Guardar personalización
 document.getElementById('btn-custom-save').addEventListener('click', async () => {
-  const titulo  = document.getElementById('cfg-titulo').value.trim() || 'Panel de Administración';
-  const logoSrc = document.getElementById('logo-preview').src;
-  const bgSrc   = document.getElementById('bg-preview').src;
-  const bgOpac  = document.getElementById('bg-opacity').value;
-  const bgPos   = document.querySelector('.pos-btn.active')?.dataset.pos || 'center center';
+  const titulo     = document.getElementById('cfg-titulo').value.trim() || 'Panel de Administración';
+  const logoSrc    = document.getElementById('logo-preview').src;
+  const portadaSrc = document.getElementById('portada-preview').src;
+  const bgSrc      = document.getElementById('bg-preview').src;
+  const bgOpac     = document.getElementById('bg-opacity').value;
+  const bgPos      = document.querySelector('.pos-btn.active')?.dataset.pos || 'center center';
 
   customCfg = {
     titulo,
-    logo:   (logoSrc && logoSrc.startsWith('data:')) ? logoSrc : '',
-    bg_img: (bgSrc   && bgSrc.startsWith('data:'))   ? bgSrc   : '',
+    logo:        (logoSrc    && logoSrc.startsWith('data:'))    ? logoSrc    : '',
+    portada_img: (portadaSrc && portadaSrc.startsWith('data:')) ? portadaSrc : '',
+    bg_img:      (bgSrc      && bgSrc.startsWith('data:'))      ? bgSrc      : '',
     bg_opac: bgOpac,
     bg_pos: bgPos,
   };

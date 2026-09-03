@@ -67,8 +67,6 @@ const upload = multer({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
 
-app.get('/', (req, res) => res.redirect('/admin.html'));
-
 // Personalización: leer configuración guardada
 app.get('/api/config', (req, res) => {
   if (!fs.existsSync(configPath)) return res.json({});
@@ -78,8 +76,8 @@ app.get('/api/config', (req, res) => {
 
 // Personalización: guardar configuración (título, logo, fondo)
 app.post('/api/config', express.json({ limit: '15mb' }), (req, res) => {
-  const { titulo, logo, bg_img, bg_opac, bg_pos } = req.body;
-  fs.writeFileSync(configPath, JSON.stringify({ titulo, logo, bg_img, bg_opac, bg_pos }));
+  const { titulo, logo, bg_img, bg_opac, bg_pos, portada_img } = req.body;
+  fs.writeFileSync(configPath, JSON.stringify({ titulo, logo, bg_img, bg_opac, bg_pos, portada_img }));
   res.json({ ok: true });
 });
 

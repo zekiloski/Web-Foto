@@ -4,6 +4,30 @@ Registro de cambios en lenguaje simple. Orden: más reciente arriba.
 (El historial técnico completo siempre está en `git log`.)
 
 --------------------------------------------------------------------
+2026-09-03 — Nueva web pública: Inicio (portada) y Eventos (QR)
+--------------------------------------------------------------------
+- La raíz del sitio (tu dominio, "/") ya NO redirige directo al panel
+  de administración. Ahora muestra una página pública nueva con dos
+  secciones, navegables con botones abajo:
+    • Inicio: portada a pantalla completa con la foto del DJ (una vez
+      que la subas) y el título configurado. Es lo primero que ve
+      cualquiera que entre a la web.
+    • Eventos: vista limpia solo con el QR grande para escanear y
+      subir fotos — sin botones de administración, pensada para
+      mostrarse al público o proyectarse.
+- El panel de administración (fotos, Google Drive, personalización)
+  sigue existiendo igual que antes, en /admin.html — no es público,
+  hay que entrar directo a esa dirección.
+- Se agregó una pestaña nueva "📸 Portada" en Personalizar (dentro del
+  panel admin) para subir la foto del DJ que se usa en Inicio, igual
+  de simple que ya funciona con el logo y el fondo.
+- Archivos tocados: server.js, public/admin.html, public/index.html
+  (nuevo).
+- Probado con Playwright: guardar título/logo/portada desde el admin,
+  verificar que se reflejan en la web pública, navegar entre Inicio y
+  Eventos, y que el QR carga correctamente ahí. Sin errores de consola.
+
+--------------------------------------------------------------------
 2026-09-03 — Fix: "memoria insuficiente" al sacar foto con el botón Cámara
 --------------------------------------------------------------------
 - Algunos celulares (sobre todo Android con poco almacenamiento
