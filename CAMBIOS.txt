@@ -4,6 +4,39 @@ Registro de cambios en lenguaje simple. Orden: más reciente arriba.
 (El historial técnico completo siempre está en `git log`.)
 
 --------------------------------------------------------------------
+2026-09-03 — Login con usuario y contraseña para el panel admin
+--------------------------------------------------------------------
+- El panel de administración (/admin.html) ya NO es de acceso libre:
+  ahora pide usuario y contraseña. Si alguien intenta entrar directo
+  sin loguearse, lo manda de vuelta a la página de Inicio.
+- En la página de Inicio aparece un botón con un candado (🔑) arriba a
+  la derecha. Al tocarlo se abre un formulario de usuario/contraseña;
+  si el login es correcto, entra directo al panel. Si ya estabas
+  logueado, el botón te lleva directo sin volver a pedir nada.
+- Dentro del panel admin se agregó un botón "🚪 Salir" para cerrar
+  sesión.
+- Usuario y contraseña se configuran con las variables de entorno
+  ADMIN_USER y ADMIN_PASS (mismo lugar donde ya está configurado el
+  PORT en Hostinger). Mientras no se configuren, se usa un usuario y
+  contraseña por defecto (admin / admin123) — el servidor avisa por
+  consola si está usando esos valores por defecto, para que se
+  cambien antes de publicar el sitio en serio. Instrucciones agregadas
+  en SubirHosting.txt.
+- Las acciones administrativas (guardar personalización, vaciar
+  galería, ver/borrar fotos) ahora también requieren estar logueado.
+  Lo que usan los invitados (subir fotos, ver el QR en Eventos, ver la
+  portada) sigue funcionando sin login, como corresponde.
+- Archivos tocados: server.js, public/admin.html, public/index.html,
+  SubirHosting.txt.
+- Probado de punta a punta con navegador real: acceso directo a
+  admin.html sin sesión (rebota a Inicio), login con contraseña
+  incorrecta (muestra error, no navega), login correcto (entra al
+  panel), acceso repetido ya logueado (entra directo sin volver a
+  pedir credenciales), y logout (vuelve a pedir login). También se
+  confirmó con pedidos directos al servidor que las rutas de
+  administración devuelven 401 sin sesión y 200 con sesión válida.
+
+--------------------------------------------------------------------
 2026-09-03 — Nueva web pública: Inicio (portada) y Eventos (QR)
 --------------------------------------------------------------------
 - La raíz del sitio (tu dominio, "/") ya NO redirige directo al panel

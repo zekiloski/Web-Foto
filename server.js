@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
@@ -43,6 +44,57 @@ function getMainSessionId() {
 }
 const MAIN_SESSION_ID = getMainSessionId();
 
+// ── Login del panel de administración ──────────────────────────────────────
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+if (!process.env.ADMIN_USER || !process.env.ADMIN_PASS) {
+  console.warn('⚠️  Usando usuario/contraseña de admin por defecto (admin/admin123). Configurá las variables de entorno ADMIN_USER y ADMIN_PASS antes de publicar el sitio.');
+}
+
+const sesionesActivas = new Set(); // tokens de admin logueados (en memoria)
+
+function compararSeguro(a, b) {
+  const bufA = Buffer.from(String(a)), bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function getCookie(req, nombre) {
+  const header = req.headers.cookie;
+  if (!header) return null;
+  const parte = header.split(';').map(c => c.trim()).find(c => c.startsWith(nombre + '='));
+  return parte ? decodeURIComponent(parte.slice(nombre.length + 1)) : null;
+}
+
+function setAuthCookie(req, res, token) {
+  const partes = [`admin_token=${token}`, 'HttpOnly', 'Path=/', 'Max-Age=28800', 'SameSite=Lax'];
+  if (req.secure) partes.push('Secure');
+  res.setHeader('Set-Cookie', partes.join('; '));
+}
+
+function clearAuthCookie(req, res) {
+  const partes = ['admin_token=', 'HttpOnly', 'Path=/', 'Max-Age=0', 'SameSite=Lax'];
+  if (req.secure) partes.push('Secure');
+  res.setHeader('Set-Cookie', partes.join('; '));
+}
+
+function estaLogueado(req) {
+  const token = getCookie(req, 'admin_token');
+  return !!(token && sesionesActivas.has(token));
+}
+
+// Protege páginas: si no está logueado, redirige a Inicio
+function requireAuthPage(req, res, next) {
+  if (estaLogueado(req)) return next();
+  res.redirect('/');
+}
+
+// Protege rutas de API: si no está logueado, responde 401
+function requireAuthApi(req, res, next) {
+  if (estaLogueado(req)) return next();
+  res.status(401).json({ error: 'No autorizado' });
+}
+
 // Multer: store files in uploads/<sessionId>/
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -64,8 +116,36 @@ const upload = multer({
   },
 });
 
+// El panel admin requiere estar logueado (se registra antes del static para interceptarlo)
+app.get('/admin.html', requireAuthPage, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
+
+// Login
+app.post('/api/login', express.json(), (req, res) => {
+  const { usuario, clave } = req.body || {};
+  if (usuario === ADMIN_USER && clave && compararSeguro(clave, ADMIN_PASS)) {
+    const token = crypto.randomBytes(32).toString('hex');
+    sesionesActivas.add(token);
+    setAuthCookie(req, res, token);
+    return res.json({ ok: true });
+  }
+  res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+});
+
+// Logout
+app.post('/api/logout', (req, res) => {
+  const token = getCookie(req, 'admin_token');
+  if (token) sesionesActivas.delete(token);
+  clearAuthCookie(req, res);
+  res.json({ ok: true });
+});
+
+// Saber si ya hay una sesión de admin activa (para no pedir login de nuevo)
+app.get('/api/whoami', requireAuthApi, (req, res) => res.json({ ok: true }));
 
 // Personalización: leer configuración guardada
 app.get('/api/config', (req, res) => {
@@ -75,7 +155,7 @@ app.get('/api/config', (req, res) => {
 });
 
 // Personalización: guardar configuración (título, logo, fondo)
-app.post('/api/config', express.json({ limit: '15mb' }), (req, res) => {
+app.post('/api/config', requireAuthApi, express.json({ limit: '15mb' }), (req, res) => {
   const { titulo, logo, bg_img, bg_opac, bg_pos, portada_img } = req.body;
   fs.writeFileSync(configPath, JSON.stringify({ titulo, logo, bg_img, bg_opac, bg_pos, portada_img }));
   res.json({ ok: true });
@@ -90,7 +170,7 @@ app.get('/api/sesion', async (req, res) => {
 });
 
 // Admin: vaciar las fotos de la sesión fija (para arrancar un evento nuevo sin cambiar el QR)
-app.post('/api/sesion/vaciar', (req, res) => {
+app.post('/api/sesion/vaciar', requireAuthApi, (req, res) => {
   const dir = path.join(uploadsDir, MAIN_SESSION_ID);
   if (fs.existsSync(dir)) {
     fs.readdirSync(dir).forEach(f => fs.unlinkSync(path.join(dir, f)));
@@ -98,8 +178,8 @@ app.post('/api/sesion/vaciar', (req, res) => {
   res.json({ ok: true });
 });
 
-// List photos for a session
-app.get('/api/fotos/:sessionId', (req, res) => {
+// List photos for a session (solo el admin ve la galería)
+app.get('/api/fotos/:sessionId', requireAuthApi, (req, res) => {
   const dir = path.join(uploadsDir, req.params.sessionId);
   if (!fs.existsSync(dir)) return res.json({ fotos: [] });
   const files = fs.readdirSync(dir).map(f => `/uploads/${req.params.sessionId}/${f}`);
@@ -107,7 +187,7 @@ app.get('/api/fotos/:sessionId', (req, res) => {
 });
 
 // Delete photos
-app.delete('/api/fotos/:sessionId', express.json(), (req, res) => {
+app.delete('/api/fotos/:sessionId', requireAuthApi, express.json(), (req, res) => {
   const { archivos } = req.body; // array de nombres de archivo
   if (!Array.isArray(archivos) || !archivos.length)
     return res.status(400).json({ error: 'Sin archivos' });

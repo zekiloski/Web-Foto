@@ -430,6 +430,7 @@
     <button class="theme-toggle" id="btn-theme" title="Cambiar tema">🌙 <span id="theme-label">Dark</span></button>
     <button class="hbtn" id="btn-personalizar">🎨 <span>Personalizar</span></button>
     <button class="hbtn" id="btn-cfg-gdrive">☁️ <span>Google Drive</span></button>
+    <button class="hbtn" id="btn-logout">🚪 <span>Salir</span></button>
   </div>
 </header>
 
@@ -848,6 +849,14 @@ document.getElementById('btn-gdrive-save').addEventListener('click', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// LOGIN / LOGOUT
+// ══════════════════════════════════════════════════════════════════════════════
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  try { await fetch('/api/logout', { method: 'POST' }); } catch { /* igual redirige */ }
+  window.location.href = '/';
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ESTADO PRINCIPAL
 // ══════════════════════════════════════════════════════════════════════════════
 let sessionId    = null;
@@ -881,7 +890,13 @@ document.getElementById('btn-vaciar').addEventListener('click', async () => {
 
 async function pollFotos() {
   if (!sessionId) return;
-  const { fotos: nuevas } = await fetch(`/api/fotos/${sessionId}`).then(r => r.json());
+  const res = await fetch(`/api/fotos/${sessionId}`);
+  if (res.status === 401) {
+    if (polling) clearInterval(polling);
+    window.location.href = '/'; // sesión vencida, hay que loguearse de nuevo
+    return;
+  }
+  const { fotos: nuevas } = await res.json();
   const conocidas = new Set(fotos.map(f => f.src));
   const agregadas = nuevas.filter(s => !conocidas.has(s));
   if (!agregadas.length) return;

@@ -20,6 +20,12 @@ En el panel de la app Node.js, buscá el botón "Ejecutar NPM Install" (o simila
 4. Variables de entorno / puerto
 
 Hostinger asigna el puerto automáticamente y lo inyecta como PORT — no necesitás configurar nada extra, el código ya usa process.env.PORT.
+
+IMPORTANTE — usuario y contraseña del panel admin:
+Sin configurar esto, el panel usa admin/admin123 por defecto (cualquiera podría entrar). En la sección de variables de entorno de la app Node.js en hPanel, agregá:
+  ADMIN_USER = el usuario que quieras
+  ADMIN_PASS = una contraseña segura
+Guardá y reiniciá la app para que tomen efecto.
 5. Iniciar/Reiniciar la app
 
 Botón "Reiniciar" en el panel de Node.js.

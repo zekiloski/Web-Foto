@@ -141,6 +141,65 @@
       border-color: var(--indigo);
     }
     .nav-btn:not(.active):hover { background: rgba(51,65,85,0.9); }
+
+    /* ── Botón de login ── */
+    .login-btn {
+      position: fixed; top: 0.9rem; right: 0.9rem;
+      z-index: 20;
+      width: 2.4rem; height: 2.4rem;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(30,41,59,0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: var(--text);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .login-btn:hover { background: rgba(51,65,85,0.9); }
+
+    /* ── Modal login ── */
+    .modal-wrap {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6); z-index: 30;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-wrap.open { display: flex; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.6rem;
+      width: 100%; max-width: 340px;
+    }
+    .modal-box h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .modal-sub { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .field input {
+      width: 100%; border: 1.5px solid var(--border);
+      background: var(--bg); color: var(--text);
+      border-radius: 8px; padding: 0.55rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    .field input:focus { outline: none; border-color: var(--indigo); }
+    .login-error {
+      color: #fca5a5; font-size: 0.8rem;
+      background: rgba(239,68,68,0.12);
+      border-radius: 8px; padding: 0.5rem 0.7rem;
+      margin-bottom: 0.9rem;
+    }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.4rem; }
+    .btn {
+      border: none; border-radius: 8px;
+      padding: 0.55rem 1.05rem;
+      font-size: 0.85rem; font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary { background: var(--indigo); color: #fff; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-ghost { background: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: #475569; }
   </style>
 </head>
 <body>
@@ -171,6 +230,30 @@
     <button class="nav-btn active" data-view="inicio">🏠 Inicio</button>
     <button class="nav-btn" data-view="eventos">🎉 Eventos</button>
   </nav>
+
+  <button class="login-btn" id="btn-login" title="Panel de administración">🔑</button>
+
+  <div class="modal-wrap" id="modal-login">
+    <div class="modal-box">
+      <h3>🔑 Iniciar sesión</h3>
+      <p class="modal-sub">Acceso al panel de administración</p>
+      <form id="login-form">
+        <div class="field">
+          <label>Usuario</label>
+          <input type="text" id="login-usuario" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" id="login-clave" autocomplete="current-password" required />
+        </div>
+        <p class="login-error" id="login-error" style="display:none"></p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="btn-login-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-login-submit">Ingresar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
 <script>
   // ── Navegación entre vistas ──────────────────────────────────────────────────
@@ -223,6 +306,48 @@
       qrCargado = false;
     }
   }
+
+  // ── Login / acceso al panel admin ───────────────────────────────────────────
+  const modalLogin = document.getElementById('modal-login');
+
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    try {
+      const r = await fetch('/api/whoami');
+      if (r.ok) { window.location.href = '/admin.html'; return; }
+    } catch { /* si falla la comprobación, mostramos igual el login */ }
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('login-form').reset();
+    modalLogin.classList.add('open');
+    document.getElementById('login-usuario').focus();
+  });
+
+  document.getElementById('btn-login-cancel').addEventListener('click', () =>
+    modalLogin.classList.remove('open'));
+  modalLogin.addEventListener('click', e => {
+    if (e.target === e.currentTarget) modalLogin.classList.remove('open');
+  });
+
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const usuario = document.getElementById('login-usuario').value.trim();
+    const clave   = document.getElementById('login-clave').value;
+    const errEl   = document.getElementById('login-error');
+    errEl.style.display = 'none';
+    try {
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario, clave }),
+      });
+      if (r.ok) { window.location.href = '/admin.html'; return; }
+      const data = await r.json().catch(() => ({}));
+      errEl.textContent = data.error || 'Usuario o contraseña incorrectos';
+      errEl.style.display = 'block';
+    } catch {
+      errEl.textContent = 'No se pudo conectar con el servidor';
+      errEl.style.display = 'block';
+    }
+  });
 </script>
 </body>
 </html>
