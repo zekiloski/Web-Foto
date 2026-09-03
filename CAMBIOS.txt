@@ -1,0 +1,39 @@
+CAMBIOS DEL PROYECTO — Web-Foto
+================================
+Registro de cambios en lenguaje simple. Orden: más reciente arriba.
+(El historial técnico completo siempre está en `git log`.)
+
+--------------------------------------------------------------------
+2026-09-03 — QR fijo por evento + compresión + descarga que limpia pantalla
+--------------------------------------------------------------------
+- El panel admin ahora usa un ÚNICO QR fijo, guardado en el servidor
+  (data/session.json), en vez de generar uno nuevo cada vez que se abre
+  la página. Se puede imprimir y proyectar en pantalla grande: siempre
+  apunta al mismo link, sirve para cualquier evento y sobrevive a
+  reinicios del servidor.
+- Nuevo botón "Vaciar galería (nuevo evento)" en el panel admin: borra
+  las fotos subidas para arrancar un evento nuevo SIN cambiar el QR ya
+  impreso.
+- Las fotos ahora se comprimen en el celular (canvas, máx. 1920px,
+  JPEG calidad 0.8) antes de subirse, para bajar el consumo de datos y
+  la carga en el servidor en eventos grandes (probado: foto de ~11.8MB
+  bajó a ~1.2MB antes de llegar al servidor).
+- El botón "Guardar en PC" del panel admin ahora, además de descargar
+  las fotos seleccionadas, las saca de la pantalla y las borra del
+  servidor (mismo comportamiento que ya tenía el botón de Google Drive).
+- Archivos tocados: server.js, public/admin.html, public/upload.html.
+- Probado con Playwright (navegador real): subida + compresión, y
+  descarga + borrado, ambos de punta a punta contra el servidor local.
+- Commit: c94c434 (pusheado a origin/main).
+
+--------------------------------------------------------------------
+Historial anterior (resumen de commits previos a este registro)
+--------------------------------------------------------------------
+2026-08-20  Selector de posición 3x3 para el foco de la imagen de fondo
+2026-08-20  Personalización (título, logo, fondo) pasa a guardarse en el servidor
+2026-08-20  La raíz del sitio ("/") redirige al panel admin
+2026-08-20  Script de build vacío (para cumplir con lo que pide el hosting)
+2026-08-20  Fix de bloqueos de deploy: vulnerabilidades de npm audit, entry file server.js
+2026-08-20  Guía de texto para subir el proyecto a Hostinger
+2026-08-19  Adaptación para hosting: usa PORT del entorno y arma la URL del QR según el host
+2026-08-19  Commit inicial: app de carga de fotos con QR y export a Google Drive
