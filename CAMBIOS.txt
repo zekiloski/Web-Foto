@@ -4,6 +4,29 @@ Registro de cambios en lenguaje simple. Orden: más reciente arriba.
 (El historial técnico completo siempre está en `git log`.)
 
 --------------------------------------------------------------------
+2026-09-03 — Cambiar contraseña del admin desde el panel
+--------------------------------------------------------------------
+- Nuevo botón "🔒 Contraseña" en el panel admin: pide la contraseña
+  actual, la nueva, y repetir la nueva. Si está todo bien, la cambia
+  al instante sin tener que tocar nada del hosting ni variables de
+  entorno.
+- La contraseña queda guardada en el servidor (no en el código),
+  encriptada (nunca en texto plano) — sobrevive a reinicios del
+  servidor.
+- Por seguridad, al cambiarla se cierra la sesión en cualquier otro
+  dispositivo/pestaña que haya quedado logueado — solo sigue adentro
+  quien hizo el cambio. La contraseña vieja deja de servir al toque.
+- Si nunca la cambiaste, se sigue usando la de las variables de
+  entorno (ADMIN_USER/ADMIN_PASS) o la de por defecto, como hasta
+  ahora.
+- Archivos tocados: server.js, public/admin.html.
+- Probado con Playwright: validación de campos (no coinciden,
+  contraseña actual incorrecta), cambio exitoso, la sesión que hizo el
+  cambio sigue adentro, otra sesión abierta se cierra sola, la
+  contraseña vieja deja de funcionar y la nueva funciona incluso
+  después de reiniciar el servidor.
+
+--------------------------------------------------------------------
 2026-09-03 — Video introductorio antes del QR + botón Eventos en admin
 --------------------------------------------------------------------
 - En Personalizar (panel admin) se agregó la pestaña "🎬 Video Intro"

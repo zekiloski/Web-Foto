@@ -51,12 +51,37 @@ if (!process.env.ADMIN_USER || !process.env.ADMIN_PASS) {
   console.warn('⚠️  Usando usuario/contraseña de admin por defecto (admin/admin123). Configurá las variables de entorno ADMIN_USER y ADMIN_PASS antes de publicar el sitio.');
 }
 
+// Si se cambió la contraseña desde el panel, queda guardada (con hash) acá y tiene prioridad sobre el env var
+const authPath = path.join(dataDir, 'auth.json');
+
 const sesionesActivas = new Set(); // tokens de admin logueados (en memoria)
 
 function compararSeguro(a, b) {
   const bufA = Buffer.from(String(a)), bufB = Buffer.from(String(b));
   if (bufA.length !== bufB.length) return false;
   return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function hashClave(clave, salt) {
+  return crypto.scryptSync(clave, salt, 64).toString('hex');
+}
+
+function cargarAuthGuardado() {
+  if (!fs.existsSync(authPath)) return null;
+  try { return JSON.parse(fs.readFileSync(authPath, 'utf8')); }
+  catch { return null; }
+}
+
+function credencialesValidas(usuario, clave) {
+  const auth = cargarAuthGuardado();
+  if (auth) {
+    if (usuario !== auth.usuario) return false;
+    const bufA = Buffer.from(hashClave(clave, auth.salt), 'hex');
+    const bufB = Buffer.from(auth.hash, 'hex');
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  }
+  return usuario === ADMIN_USER && compararSeguro(clave, ADMIN_PASS);
 }
 
 function getCookie(req, nombre) {
@@ -144,7 +169,7 @@ app.use('/media', express.static(assetsDir));
 // Login
 app.post('/api/login', express.json(), (req, res) => {
   const { usuario, clave } = req.body || {};
-  if (usuario === ADMIN_USER && clave && compararSeguro(clave, ADMIN_PASS)) {
+  if (usuario && clave && credencialesValidas(usuario, clave)) {
     const token = crypto.randomBytes(32).toString('hex');
     sesionesActivas.add(token);
     setAuthCookie(req, res, token);
@@ -163,6 +188,30 @@ app.post('/api/logout', (req, res) => {
 
 // Saber si ya hay una sesión de admin activa (para no pedir login de nuevo)
 app.get('/api/whoami', requireAuthApi, (req, res) => res.json({ ok: true }));
+
+// Cambiar la contraseña del panel admin
+app.post('/api/cambiar-clave', requireAuthApi, express.json(), (req, res) => {
+  const { claveActual, claveNueva } = req.body || {};
+  if (!claveNueva || claveNueva.length < 4) {
+    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 4 caracteres' });
+  }
+  const usuarioActual = (cargarAuthGuardado() || {}).usuario || ADMIN_USER;
+  if (!claveActual || !credencialesValidas(usuarioActual, claveActual)) {
+    return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+  }
+
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = hashClave(claveNueva, salt);
+  fs.writeFileSync(authPath, JSON.stringify({ usuario: usuarioActual, salt, hash }));
+
+  // Por seguridad, se cierran otras sesiones activas y se renueva la de quien hizo el cambio
+  sesionesActivas.clear();
+  const nuevoToken = crypto.randomBytes(32).toString('hex');
+  sesionesActivas.add(nuevoToken);
+  setAuthCookie(req, res, nuevoToken);
+
+  res.json({ ok: true });
+});
 
 // Personalización: leer configuración guardada
 app.get('/api/config', (req, res) => {

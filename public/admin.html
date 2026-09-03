@@ -339,15 +339,21 @@
 
     .field { margin-bottom: 1.1rem; }
     .field label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; }
-    .field input[type="text"] {
+    .field input[type="text"], .field input[type="password"] {
       width: 100%; border: 1.5px solid var(--border);
       background: var(--bg); color: var(--text);
       border-radius: 8px; padding: 0.52rem 0.75rem;
       font-size: 0.85rem; transition: border-color 0.15s;
     }
-    .field input[type="text"]:focus { outline: none; border-color: var(--indigo); }
+    .field input[type="text"]:focus, .field input[type="password"]:focus { outline: none; border-color: var(--indigo); }
     .field .hint { font-size: 0.74rem; color: var(--text2); margin-top: 0.3rem; line-height: 1.45; }
     .field .hint a { color: var(--indigo); }
+    .form-error {
+      color: #fca5a5; font-size: 0.8rem;
+      background: rgba(239,68,68,0.12);
+      border-radius: 8px; padding: 0.5rem 0.7rem;
+      margin-bottom: 0.9rem;
+    }
 
     /* Upload zona imagen */
     .img-upload-zone {
@@ -431,6 +437,7 @@
     <button class="hbtn" id="btn-ver-eventos">🎉 <span>Eventos</span></button>
     <button class="hbtn" id="btn-personalizar">🎨 <span>Personalizar</span></button>
     <button class="hbtn" id="btn-cfg-gdrive">☁️ <span>Google Drive</span></button>
+    <button class="hbtn" id="btn-cambiar-clave">🔒 <span>Contraseña</span></button>
     <button class="hbtn" id="btn-logout">🚪 <span>Salir</span></button>
   </div>
 </header>
@@ -627,6 +634,31 @@
     <div class="modal-footer">
       <button class="btn btn-ghost"   id="btn-gdrive-cancel">Cancelar</button>
       <button class="btn btn-primary" id="btn-gdrive-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Cambiar contraseña ───────────────────────────────────────────── -->
+<div class="modal-wrap" id="modal-clave">
+  <div class="modal-box">
+    <h3>🔒 Cambiar contraseña</h3>
+    <p class="modal-sub">Se va a cerrar la sesión en cualquier otro dispositivo logueado.</p>
+    <div class="field">
+      <label>Contraseña actual</label>
+      <input type="password" id="clave-actual" autocomplete="current-password" />
+    </div>
+    <div class="field">
+      <label>Contraseña nueva</label>
+      <input type="password" id="clave-nueva" autocomplete="new-password" />
+    </div>
+    <div class="field">
+      <label>Repetir contraseña nueva</label>
+      <input type="password" id="clave-nueva-repetir" autocomplete="new-password" />
+    </div>
+    <p class="form-error" id="clave-error" style="display:none"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"   id="btn-clave-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="btn-clave-guardar">Guardar</button>
     </div>
   </div>
 </div>
@@ -919,6 +951,62 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 // Abre la sección Eventos (QR) en una pestaña aparte, para dejarla fija mientras se sigue trabajando acá
 document.getElementById('btn-ver-eventos').addEventListener('click', () => {
   window.open('/#eventos', '_blank');
+});
+
+// Cambiar contraseña
+const modalClave = document.getElementById('modal-clave');
+
+document.getElementById('btn-cambiar-clave').addEventListener('click', () => {
+  document.getElementById('clave-actual').value = '';
+  document.getElementById('clave-nueva').value = '';
+  document.getElementById('clave-nueva-repetir').value = '';
+  document.getElementById('clave-error').style.display = 'none';
+  modalClave.classList.add('open');
+});
+document.getElementById('btn-clave-cancel').addEventListener('click', () =>
+  modalClave.classList.remove('open'));
+
+document.getElementById('btn-clave-guardar').addEventListener('click', async () => {
+  const claveActual  = document.getElementById('clave-actual').value;
+  const claveNueva   = document.getElementById('clave-nueva').value;
+  const claveRepetir = document.getElementById('clave-nueva-repetir').value;
+  const errEl = document.getElementById('clave-error');
+  errEl.style.display = 'none';
+
+  if (!claveActual || !claveNueva) {
+    errEl.textContent = 'Completá todos los campos';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (claveNueva.length < 4) {
+    errEl.textContent = 'La contraseña nueva debe tener al menos 4 caracteres';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (claveNueva !== claveRepetir) {
+    errEl.textContent = 'Las contraseñas nuevas no coinciden';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const r = await fetch('/api/cambiar-clave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ claveActual, claveNueva }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      errEl.textContent = data.error || 'No se pudo cambiar la contraseña';
+      errEl.style.display = 'block';
+      return;
+    }
+    modalClave.classList.remove('open');
+    toast('✅ Contraseña actualizada', 'ok');
+  } catch {
+    errEl.textContent = 'No se pudo conectar con el servidor';
+    errEl.style.display = 'block';
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
