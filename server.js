@@ -116,6 +116,22 @@ const upload = multer({
   },
 });
 
+// Video introductorio: se guarda como archivo fijo (no como base64 en config.json)
+const assetsDir = path.join(dataDir, 'assets');
+if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
+const introVideoPath = path.join(assetsDir, 'intro.mp4');
+const videoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, assetsDir),
+    filename: (req, file, cb) => cb(null, 'intro.mp4'),
+  }),
+  limits: { fileSize: 80 * 1024 * 1024 }, // 80MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'video/mp4' || path.extname(file.originalname).toLowerCase() === '.mp4') cb(null, true);
+    else cb(new Error('Solo se permite video MP4'));
+  },
+});
+
 // El panel admin requiere estar logueado (se registra antes del static para interceptarlo)
 app.get('/admin.html', requireAuthPage, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
@@ -123,6 +139,7 @@ app.get('/admin.html', requireAuthPage, (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
+app.use('/media', express.static(assetsDir));
 
 // Login
 app.post('/api/login', express.json(), (req, res) => {
@@ -158,6 +175,23 @@ app.get('/api/config', (req, res) => {
 app.post('/api/config', requireAuthApi, express.json({ limit: '15mb' }), (req, res) => {
   const { titulo, logo, bg_img, bg_opac, bg_pos, portada_img } = req.body;
   fs.writeFileSync(configPath, JSON.stringify({ titulo, logo, bg_img, bg_opac, bg_pos, portada_img }));
+  res.json({ ok: true });
+});
+
+// Video introductorio: saber si hay uno configurado (público, lo consulta la página de Eventos)
+app.get('/api/config/video-estado', (req, res) => {
+  res.json({ existe: fs.existsSync(introVideoPath) });
+});
+
+// Video introductorio: subir/reemplazar (admin)
+app.post('/api/config/video', requireAuthApi, videoUpload.single('video'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió el video' });
+  res.json({ ok: true });
+});
+
+// Video introductorio: quitar (admin)
+app.delete('/api/config/video', requireAuthApi, (req, res) => {
+  if (fs.existsSync(introVideoPath)) fs.unlinkSync(introVideoPath);
   res.json({ ok: true });
 });
 

@@ -80,10 +80,31 @@
 
     /* ── Vista: Eventos ── */
     #view-eventos {
+      position: relative;
       align-items: center;
       justify-content: center;
       padding: 2rem 1.25rem 7.5rem;
     }
+
+    /* Video introductorio, se muestra antes de la tarjeta del QR */
+    #evt-video-wrap {
+      display: none;
+      position: absolute; inset: 0;
+      background: #000;
+      z-index: 5;
+      align-items: center; justify-content: center;
+    }
+    #evt-video { width: 100%; height: 100%; object-fit: cover; }
+    #btn-video-skip {
+      position: absolute; bottom: 6.5rem; right: 1.2rem;
+      background: rgba(15,23,42,0.75); color: #fff;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px; padding: 0.5rem 1.1rem;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    #btn-video-skip:hover { background: rgba(30,41,59,0.9); }
     .evt-card {
       width: 100%;
       max-width: 400px;
@@ -215,7 +236,11 @@
   </section>
 
   <section id="view-eventos" class="view">
-    <div class="evt-card">
+    <div id="evt-video-wrap">
+      <video id="evt-video" playsinline></video>
+      <button id="btn-video-skip">Saltar ▶</button>
+    </div>
+    <div class="evt-card" id="evt-card">
       <img id="evt-logo" class="evt-logo" src="" alt="" />
       <div class="evt-emoji" id="evt-emoji">🎉</div>
       <h2 id="evt-title">Fotos del evento</h2>
@@ -265,7 +290,10 @@
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('view-' + btn.dataset.view).classList.add('active');
-      if (btn.dataset.view === 'eventos' && !qrCargado) cargarQR();
+      if (btn.dataset.view === 'eventos') {
+        if (!qrCargado) cargarQR();
+        mostrarVideoIntro();
+      }
     });
   });
 
@@ -348,6 +376,39 @@
       errEl.style.display = 'block';
     }
   });
+
+  // ── Video introductorio (se reproduce antes de mostrar el QR) ──────────────────
+  async function mostrarVideoIntro() {
+    const card = document.getElementById('evt-card');
+    let existe = false;
+    try {
+      const data = await fetch('/api/config/video-estado').then(r => r.json());
+      existe = !!data.existe;
+    } catch { existe = false; }
+
+    if (!existe) { card.style.display = 'block'; return; }
+
+    const wrap  = document.getElementById('evt-video-wrap');
+    const video = document.getElementById('evt-video');
+    video.src = `/media/intro.mp4?t=${Date.now()}`;
+    card.style.display = 'none';
+    wrap.style.display = 'flex';
+
+    const terminar = () => {
+      wrap.style.display = 'none';
+      card.style.display = 'block';
+      video.pause();
+    };
+    video.onended = terminar;
+    video.onerror = terminar; // no había video en realidad, o falló al cargar: mostrar el QR directo
+    document.getElementById('btn-video-skip').onclick = terminar;
+    video.play().catch(terminar); // si el navegador bloquea el autoplay, mostramos el QR directo
+  }
+
+  // ── Entrar directo a Eventos con /#eventos (usado por el botón del panel admin) ──
+  if (location.hash === '#eventos') {
+    document.querySelector('.nav-btn[data-view="eventos"]').click();
+  }
 </script>
 </body>
 </html>

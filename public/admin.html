@@ -428,6 +428,7 @@
   <span class="header-title" id="header-title">Panel de Administración</span>
   <div class="header-actions">
     <button class="theme-toggle" id="btn-theme" title="Cambiar tema">🌙 <span id="theme-label">Dark</span></button>
+    <button class="hbtn" id="btn-ver-eventos">🎉 <span>Eventos</span></button>
     <button class="hbtn" id="btn-personalizar">🎨 <span>Personalizar</span></button>
     <button class="hbtn" id="btn-cfg-gdrive">☁️ <span>Google Drive</span></button>
     <button class="hbtn" id="btn-logout">🚪 <span>Salir</span></button>
@@ -508,6 +509,7 @@
       <button class="tab-btn active" data-tab="apariencia">🎨 Apariencia</button>
       <button class="tab-btn" data-tab="logo">🖼️ Logo</button>
       <button class="tab-btn" data-tab="portada">📸 Portada</button>
+      <button class="tab-btn" data-tab="video">🎬 Video Intro</button>
       <button class="tab-btn" data-tab="fondo">🏞️ Fondo</button>
     </div>
 
@@ -551,6 +553,20 @@
         <div class="hint">Se muestra a pantalla completa en la página de Inicio (la web pública, no este panel).</div>
       </div>
       <button class="btn btn-ghost" id="btn-portada-clear" style="width:100%;justify-content:center">✕ Quitar portada</button>
+    </div>
+
+    <!-- Tab: Video Intro -->
+    <div class="tab-panel" id="tab-video">
+      <div class="field">
+        <label>Video introductorio (sección Eventos)</label>
+        <div class="img-upload-zone" id="video-zone">
+          <div id="video-placeholder">📹 Tocá para subir un video MP4</div>
+        </div>
+        <input type="file" id="video-input" accept="video/mp4" />
+        <div id="video-status" style="font-size:0.8rem;color:var(--text2);margin-top:0.6rem">Verificando…</div>
+        <div class="hint">Se reproduce automáticamente antes de mostrar el QR en Eventos. El visitante puede saltarlo. Máx. 80 MB. Se sube al instante (no hace falta tocar "Guardar cambios").</div>
+      </div>
+      <button class="btn btn-ghost" id="btn-video-clear" style="width:100%;justify-content:center">✕ Quitar video</button>
     </div>
 
     <!-- Tab: Fondo -->
@@ -708,6 +724,8 @@ document.getElementById('btn-personalizar').addEventListener('click', () => {
 
   setBgPos(bgPos);
 
+  refrescarEstadoVideo();
+
   document.getElementById('modal-custom').classList.add('open');
 });
 document.getElementById('btn-custom-cancel').addEventListener('click', () =>
@@ -762,6 +780,48 @@ document.getElementById('btn-portada-clear').addEventListener('click', () => {
   document.getElementById('portada-preview').style.display = 'none';
   document.getElementById('portada-placeholder').style.display = 'block';
   document.getElementById('portada-preview').src = '';
+});
+
+// Video intro: se sube al toque (no espera al botón "Guardar cambios", puede pesar mucho)
+async function refrescarEstadoVideo() {
+  const estado = document.getElementById('video-status');
+  estado.textContent = 'Verificando…';
+  try {
+    const { existe } = await fetch('/api/config/video-estado').then(r => r.json());
+    estado.textContent = existe ? '✅ Hay un video configurado.' : 'Todavía no subiste ningún video.';
+  } catch {
+    estado.textContent = '';
+  }
+}
+
+document.getElementById('video-zone').addEventListener('click', () =>
+  document.getElementById('video-input').click());
+
+document.getElementById('video-input').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  if (file.size > 80 * 1024 * 1024) { toast('Video demasiado grande (máx 80 MB)', 'err'); e.target.value = ''; return; }
+
+  document.getElementById('video-status').textContent = 'Subiendo…';
+  const form = new FormData();
+  form.append('video', file);
+  try {
+    const r = await fetch('/api/config/video', { method: 'POST', body: form });
+    if (!r.ok) throw new Error();
+    toast('✅ Video subido', 'ok');
+  } catch {
+    toast('❌ No se pudo subir el video', 'err');
+  }
+  refrescarEstadoVideo();
+  e.target.value = '';
+});
+
+document.getElementById('btn-video-clear').addEventListener('click', async () => {
+  if (!confirm('¿Quitar el video introductorio?')) return;
+  try {
+    await fetch('/api/config/video', { method: 'DELETE' });
+    toast('🗑 Video quitado', 'ok');
+  } catch { toast('❌ No se pudo quitar el video', 'err'); }
+  refrescarEstadoVideo();
 });
 
 // Fondo upload
@@ -854,6 +914,11 @@ document.getElementById('btn-gdrive-save').addEventListener('click', () => {
 document.getElementById('btn-logout').addEventListener('click', async () => {
   try { await fetch('/api/logout', { method: 'POST' }); } catch { /* igual redirige */ }
   window.location.href = '/';
+});
+
+// Abre la sección Eventos (QR) en una pestaña aparte, para dejarla fija mientras se sigue trabajando acá
+document.getElementById('btn-ver-eventos').addEventListener('click', () => {
+  window.open('/#eventos', '_blank');
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

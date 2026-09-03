@@ -4,6 +4,31 @@ Registro de cambios en lenguaje simple. Orden: más reciente arriba.
 (El historial técnico completo siempre está en `git log`.)
 
 --------------------------------------------------------------------
+2026-09-03 — Video introductorio antes del QR + botón Eventos en admin
+--------------------------------------------------------------------
+- En Personalizar (panel admin) se agregó la pestaña "🎬 Video Intro"
+  para subir un video MP4. A diferencia de logo/portada/fondo, este se
+  sube al toque (no espera al botón "Guardar cambios"), porque puede
+  pesar bastante — hasta 80 MB.
+- En la sección Eventos de la web pública, si hay un video cargado, se
+  reproduce automáticamente ANTES de mostrar el QR (con un botón
+  "Saltar ▶" por si alguien no quiere esperar). Si no hay video
+  configurado, se muestra el QR directo como antes. Se probó con un
+  video real (djPABLO.mp4) subido desde el panel.
+- En el panel admin se agregó un botón "🎉 Eventos" que abre la
+  sección Eventos (con su video y QR) en una PESTAÑA NUEVA del
+  navegador — así se puede dejar esa pestaña fija (por ejemplo
+  proyectada en una pantalla) mientras se sigue trabajando en el
+  panel de fotos en la pestaña original, sin que una cosa interrumpa
+  a la otra.
+- Archivos tocados: server.js, public/admin.html, public/index.html.
+- Probado con Playwright de punta a punta: subida real del video desde
+  el panel, verificación del estado vía API, click en "Eventos" abre
+  pestaña nueva y entra directo a esa sección, el video se reproduce
+  antes del QR, saltar el video revela el QR, y la pestaña original
+  del panel admin queda intacta para seguir trabajando.
+
+--------------------------------------------------------------------
 2026-09-03 — Login con usuario y contraseña para el panel admin
 --------------------------------------------------------------------
 - El panel de administración (/admin.html) ya NO es de acceso libre:
