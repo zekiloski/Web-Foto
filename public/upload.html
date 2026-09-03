@@ -315,11 +315,35 @@
     addFiles([...e.target.files]); e.target.value = '';
   });
 
-  function addFiles(files) {
-    files.filter(f => f.type.startsWith('image/')).forEach(f => {
-      fotos.push({ id: idSeq++, file: f, url: URL.createObjectURL(f), selected: false });
-    });
-    render();
+  // Comprime la imagen en el celular antes de subirla (menos datos, menos carga en el servidor)
+  async function compressImage(file, maxDim = 1920, quality = 0.8) {
+    try {
+      const bitmap = await createImageBitmap(file);
+      let { width, height } = bitmap;
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+      bitmap.close?.();
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+      if (!blob) return file;
+      const nombre = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([blob], nombre, { type: 'image/jpeg' });
+    } catch {
+      return file; // si falla la compresión, se sube el original
+    }
+  }
+
+  async function addFiles(files) {
+    for (const f of files.filter(f => f.type.startsWith('image/'))) {
+      const comprimido = await compressImage(f);
+      fotos.push({ id: idSeq++, file: comprimido, url: URL.createObjectURL(comprimido), selected: false });
+      render();
+    }
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────

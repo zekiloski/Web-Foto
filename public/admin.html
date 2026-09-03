@@ -438,16 +438,16 @@
 
   <!-- QR -->
   <div class="card">
-    <div class="card-title">Sesión de carga</div>
-    <button class="btn btn-primary" id="btn-generar">✚ Generar nuevo QR</button>
+    <div class="card-title">QR fijo — válido para cualquier evento</div>
     <div class="qr-wrap" id="qr-section" style="display:none">
       <img id="qr-img" width="160" height="160" alt="QR" />
       <div class="qr-meta">
-        <div class="lbl">Compartí este QR o enlace con los usuarios:</div>
+        <div class="lbl">Este QR no cambia: imprimilo y proyectalo, sirve para todos los eventos.</div>
         <div class="url-box" id="url-texto"></div>
         <span class="badge-live"><span class="dot"></span>Sesión activa</span>
-        <div style="margin-top:0.9rem">
+        <div style="margin-top:0.9rem;display:flex;gap:0.5rem;flex-wrap:wrap">
           <button class="btn btn-ghost" id="btn-print-qr">🖨️ Imprimir QR</button>
+          <button class="btn btn-ghost" id="btn-vaciar">🧹 Vaciar galería (nuevo evento)</button>
         </div>
       </div>
     </div>
@@ -813,18 +813,27 @@ let fotos        = [];
 let lightboxIdx  = 0;
 
 // ── QR ────────────────────────────────────────────────────────────────────────
-document.getElementById('btn-generar').addEventListener('click', async () => {
-  if (polling) clearInterval(polling);
-  fotos = [];
-  renderGrid();
-  const data = await fetch('/api/nueva-sesion').then(r => r.json());
+async function cargarSesion() {
+  const data = await fetch('/api/sesion').then(r => r.json());
   sessionId = data.sessionId;
   document.getElementById('qr-img').src = data.qr;
   document.getElementById('url-texto').textContent = data.uploadUrl;
   document.getElementById('qr-section').style.display = 'flex';
   document.getElementById('card-fotos').style.display = 'block';
+  if (polling) clearInterval(polling);
   polling = setInterval(pollFotos, 3000);
   pollFotos();
+}
+
+document.getElementById('btn-vaciar').addEventListener('click', async () => {
+  if (!sessionId) return;
+  if (!confirm('¿Vaciar la galería para empezar un evento nuevo? El QR sigue siendo el mismo, pero se borran todas las fotos actuales.')) return;
+  try {
+    await fetch('/api/sesion/vaciar', { method: 'POST' });
+    fotos = [];
+    renderGrid();
+    toast('🧹 Galería vaciada, listo para el próximo evento', 'ok');
+  } catch { toast('❌ No se pudo vaciar la galería', 'err'); }
 });
 
 async function pollFotos() {
@@ -926,7 +935,20 @@ document.getElementById('btn-download').addEventListener('click', async () => {
     a.remove();
     await new Promise(r => setTimeout(r, 300)); // evita que el navegador bloquee descargas simultáneas
   }
-  toast(`💻 ${sel.length} foto${sel.length>1?'s':''} descargada${sel.length>1?'s':''}`, 'ok');
+
+  // Igual que con Drive: una vez guardadas, se quitan de la pantalla y del servidor
+  const archivos = sel.map(f => f.src.split('/').pop());
+  try {
+    await fetch(`/api/fotos/${sessionId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ archivos }),
+    });
+  } catch { /* si falla el borrado, las fotos quedan y se listan igual */ }
+
+  fotos = fotos.filter(f => !f.selected);
+  renderGrid();
+  toast(`💻 ${sel.length} foto${sel.length>1?'s':''} guardada${sel.length>1?'s':''} y quitada${sel.length>1?'s':''} de la pantalla`, 'ok');
 });
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
@@ -1104,6 +1126,7 @@ document.getElementById('btn-print-qr').addEventListener('click', () => {
 (function init() {
   applyTheme(localStorage.getItem('theme') || 'dark');
   loadCustom();
+  cargarSesion();
 })();
 </script>
 </body>

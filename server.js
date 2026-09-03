@@ -30,6 +30,19 @@ const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 const configPath = path.join(dataDir, 'config.json');
 
+// Sesión fija: un único QR que se reutiliza para cualquier evento
+const sessionPath = path.join(dataDir, 'session.json');
+function getMainSessionId() {
+  if (fs.existsSync(sessionPath)) {
+    try { return JSON.parse(fs.readFileSync(sessionPath, 'utf8')).sessionId; }
+    catch { /* si el archivo está corrupto, se regenera abajo */ }
+  }
+  const sessionId = uuidv4();
+  fs.writeFileSync(sessionPath, JSON.stringify({ sessionId }));
+  return sessionId;
+}
+const MAIN_SESSION_ID = getMainSessionId();
+
 // Multer: store files in uploads/<sessionId>/
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -70,13 +83,21 @@ app.post('/api/config', express.json({ limit: '15mb' }), (req, res) => {
   res.json({ ok: true });
 });
 
-// Admin: generate new QR session
-app.get('/api/nueva-sesion', async (req, res) => {
-  const sessionId = uuidv4();
+// Admin: obtener la sesión fija (mismo QR siempre, para cualquier evento)
+app.get('/api/sesion', async (req, res) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
-  const uploadUrl = `${baseUrl}/upload/${sessionId}`;
+  const uploadUrl = `${baseUrl}/upload/${MAIN_SESSION_ID}`;
   const qrDataUrl = await QRCode.toDataURL(uploadUrl, { width: 300 });
-  res.json({ sessionId, uploadUrl, qr: qrDataUrl });
+  res.json({ sessionId: MAIN_SESSION_ID, uploadUrl, qr: qrDataUrl });
+});
+
+// Admin: vaciar las fotos de la sesión fija (para arrancar un evento nuevo sin cambiar el QR)
+app.post('/api/sesion/vaciar', (req, res) => {
+  const dir = path.join(uploadsDir, MAIN_SESSION_ID);
+  if (fs.existsSync(dir)) {
+    fs.readdirSync(dir).forEach(f => fs.unlinkSync(path.join(dir, f)));
+  }
+  res.json({ ok: true });
 });
 
 // List photos for a session
