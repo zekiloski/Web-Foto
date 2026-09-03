@@ -4,6 +4,25 @@ Registro de cambios en lenguaje simple. Orden: más reciente arriba.
 (El historial técnico completo siempre está en `git log`.)
 
 --------------------------------------------------------------------
+2026-09-03 — Fix: "memoria insuficiente" al sacar foto con el botón Cámara
+--------------------------------------------------------------------
+- Algunos celulares (sobre todo Android con poco almacenamiento
+  interno libre) tiraban un error de "memoria insuficiente" al tocar
+  el botón "Cámara" y sacar la foto, mientras que elegir desde
+  "Galería" andaba bien.
+- Causa: el botón de Cámara forzaba al sistema a guardar la foto
+  recién sacada, a máxima resolución, en un archivo temporal del
+  almacenamiento interno del teléfono antes de devolvérsela a la
+  página — ahí es donde fallaba en celulares con poco espacio interno
+  (aunque tuvieran espacio de sobra en la memoria SD). Esto pasaba
+  antes de que la compresión que agregamos pudiera actuar.
+- Ahora el botón "Cámara" abre el selector normal del sistema (donde
+  "Cámara" sigue apareciendo como opción, a un toque más), evitando
+  ese camino problemático. La foto pasa por el guardado normal del
+  teléfono, igual que cuando se elige desde la Galería.
+- Archivos tocados: public/upload.html.
+
+--------------------------------------------------------------------
 2026-09-03 — "Guardar en PC" abre el explorador de archivos
 --------------------------------------------------------------------
 - Al tocar "Guardar en PC" en el panel admin, ahora se abre el
