@@ -241,14 +241,14 @@
       text-align: center;
     }
     .evt-logo {
-      height: 3rem;
+      height: clamp(2rem, 6vh, 3rem);
       object-fit: contain;
       margin: 0 auto 0.8rem;
       display: none;
     }
     .evt-logo.visible { display: block; }
-    .evt-emoji { font-size: 2.4rem; margin-bottom: 0.5rem; }
-    .evt-card h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .evt-emoji { font-size: clamp(1.6rem, 5vh, 2.4rem); margin-bottom: 0.5rem; }
+    .evt-card h2 { display: none; }
     .evt-sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 1.6rem; line-height: 1.5; }
 
     .evt-qr-wrap {
@@ -262,8 +262,8 @@
     }
     .evt-qr-wrap img {
       display: block;
-      width: clamp(220px, 30vw, 480px);
-      height: clamp(220px, 30vw, 480px);
+      width: clamp(220px, min(30vw, 42vh), 480px);
+      height: clamp(220px, min(30vw, 42vh), 480px);
       max-width: 100%;
     }
 
@@ -338,8 +338,7 @@
       }
 
       /* agrandamos textos para legibilidad a distancia */
-      .evt-emoji { font-size: 3.4rem; }
-      .evt-card h2 { font-size: 2rem; }
+      .evt-emoji { font-size: clamp(1.8rem, 6vh, 3.4rem); }
       .evt-sub { font-size: 1.1rem; }
       .evt-contact-title { font-size: 1.3rem; }
       .contact-name { font-size: 1.2rem; }
