@@ -77,6 +77,129 @@
       margin-top: 0.4rem;
       text-shadow: 0 1px 6px rgba(0,0,0,0.5);
     }
+    .cover-links {
+      display: flex;
+      justify-content: center;
+      gap: 0.7rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .cover-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(30,41,59,0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .cover-link:hover {
+      background: var(--indigo);
+      border-color: var(--indigo);
+    }
+
+    /* ── Acordeón de artistas (portada) ── */
+    .cast-panel {
+      position: absolute;
+      top: 1.2rem;
+      left: 1.2rem;
+      z-index: 2;
+      display: flex;
+      align-items: flex-start;
+      max-width: 82vw;
+      max-height: calc(100% - 8.5rem);
+    }
+    .cast-panel-inner {
+      width: min(320px, 78vw);
+      background: rgba(30,41,59,0.82);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+      padding: 0.4rem;
+      overflow-y: auto;
+      max-height: calc(100dvh - 8.5rem);
+    }
+    .cast-panel.collapsed .cast-panel-inner { display: none; }
+    .cast-panel-toggle {
+      flex-shrink: 0;
+      margin-left: 0.5rem;
+      width: 1.9rem; height: 1.9rem;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(30,41,59,0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.2s;
+    }
+    .cast-panel-toggle:hover { background: rgba(51,65,85,0.9); }
+    .cast-panel.collapsed .cast-panel-toggle { transform: rotate(180deg); }
+    .cast-item + .cast-item {
+      margin-top: 0.2rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 0.2rem;
+    }
+    .cast-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      padding: 0.6rem 0.65rem;
+      font-size: 0.83rem;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 10px;
+      font-family: inherit;
+    }
+    .cast-header:hover { background: rgba(255,255,255,0.06); }
+    .cast-chevron {
+      flex-shrink: 0;
+      color: var(--muted);
+      font-size: 0.7rem;
+      transition: transform 0.2s, color 0.2s;
+    }
+    .cast-header.active .cast-chevron { transform: rotate(180deg); color: var(--indigo); }
+    .cast-body {
+      max-height: 0;
+      overflow: hidden;
+      padding: 0 0.65rem;
+      transition: max-height 0.28s ease, padding 0.28s ease;
+    }
+    .cast-body.open {
+      max-height: 1200px;
+      padding: 0 0.65rem 0.7rem;
+    }
+    .cast-body p {
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.5;
+      margin-bottom: 0.55rem;
+    }
+    .cast-body p.cast-tagline {
+      color: var(--text);
+      font-style: italic;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 0.5rem;
+      margin-bottom: 0;
+    }
 
     /* ── Vista: Eventos ── */
     #view-eventos {
@@ -227,11 +350,49 @@
 
   <section id="view-inicio" class="view active">
     <div class="cover-overlay"></div>
+
+    <div class="cast-panel" id="cast-panel">
+      <div class="cast-panel-inner">
+        <div class="cast-item">
+          <button class="cast-header active" data-target="cast-pablo">
+            <span>🎧 Pablo Etcheverry – DJ</span>
+            <span class="cast-chevron">▾</span>
+          </button>
+          <div class="cast-body open" id="cast-pablo">
+            <p>Con 16 años de trayectoria como DJ, Pablo Etcheverry se ha consolidado como un referente de la música y el entretenimiento en eventos de la zona.</p>
+            <p>A lo largo de su carrera ha trabajado en diferentes boliches y escenarios, adquiriendo una amplia experiencia para adaptarse a cada público y a cada ocasión. Su especialidad son los estilos cachengue y ambiente, creando sets dinámicos y llenos de energía que invitan a disfrutar y bailar durante toda la noche.</p>
+            <p>Pablo cuenta además con una importante experiencia en eventos sociales y corporativos, participando en cumpleaños de 15, casamientos, fiestas privadas y eventos empresariales.</p>
+            <p>Su compromiso, trayectoria y capacidad para interpretar lo que cada evento necesita hacen de cada presentación una experiencia pensada para que los invitados disfruten, se diviertan y vivan un momento inolvidable.</p>
+            <p class="cast-tagline">16 años haciendo de la música el ingrediente principal de cada celebración.</p>
+          </div>
+        </div>
+        <div class="cast-item">
+          <button class="cast-header" data-target="cast-damian">
+            <span>🎙️ Damián Cappri – Locutor</span>
+            <span class="cast-chevron">▾</span>
+          </button>
+          <div class="cast-body" id="cast-damian">
+            <p>Con una trayectoria de más de 30 años en los medios de comunicación, Damián Cappri se desempeña como locutor y voz profesional, aportando experiencia, versatilidad y compromiso a cada proyecto.</p>
+            <p>Su recorrido en radio comenzó en 1992, pasando por reconocidas emisoras como FM Conviviendo, Radio Oncativo, Radio Amistad y Radio Show, donde desarrolló una amplia experiencia frente al micrófono y en diferentes formatos de comunicación.</p>
+            <p>A lo largo de su carrera también realizó grabaciones y trabajos de voz para distintos medios y proyectos, incluyendo FM Única de Valcheta, provincia de Río Negro, y trabajos realizados para Increcendo Estudio, de la ciudad de Córdoba.</p>
+            <p>Actualmente cuenta con estudio de grabación propio, lo que le permite producir trabajos de voz con comodidad, profesionalismo y calidad, adaptándose a las necesidades de cada cliente.</p>
+            <p>Con décadas de experiencia en radio y comunicación, Damián Cappri ofrece una voz profesional y versátil para publicidades, institucionales, presentaciones, eventos, promociones y diferentes proyectos audiovisuales.</p>
+            <p class="cast-tagline">Más de 30 años de experiencia comunicando, creando y poniendo voz a cada proyecto.</p>
+          </div>
+        </div>
+      </div>
+      <button class="cast-panel-toggle" id="cast-panel-toggle" title="Mostrar/ocultar">‹</button>
+    </div>
+
     <div class="cover-content">
       <img id="cover-logo" class="cover-logo" src="" alt="" />
       <div class="cover-emoji" id="cover-emoji">🎧</div>
       <h1 id="cover-title">Bienvenidos</h1>
       <p id="cover-sub">Escaneá el QR en Eventos para subir tus fotos</p>
+      <div class="cover-links">
+        <a class="cover-link" href="https://youtube.com/@pabloetcheverrydj?si=XFeSctyQ1xqAhZFT" target="_blank" rel="noopener noreferrer">▶ YouTube</a>
+        <a class="cover-link" href="https://on.soundcloud.com/l6KE1xwKcar8lHknmd" target="_blank" rel="noopener noreferrer">☁ SoundCloud</a>
+      </div>
     </div>
   </section>
 
@@ -295,6 +456,24 @@
         mostrarVideoIntro();
       }
     });
+  });
+
+  // ── Acordeón de artistas (portada) ──────────────────────────────────────────
+  document.querySelectorAll('.cast-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const body = document.getElementById(header.dataset.target);
+      const yaAbierto = header.classList.contains('active');
+      document.querySelectorAll('.cast-header').forEach(h => h.classList.remove('active'));
+      document.querySelectorAll('.cast-body').forEach(b => b.classList.remove('open'));
+      if (!yaAbierto) {
+        header.classList.add('active');
+        body.classList.add('open');
+      }
+    });
+  });
+
+  document.getElementById('cast-panel-toggle').addEventListener('click', () => {
+    document.getElementById('cast-panel').classList.toggle('collapsed');
   });
 
   // ── Personalización (título, logo, portada) ───────────────────────────────────
