@@ -228,9 +228,16 @@
       -webkit-backdrop-filter: blur(6px);
     }
     #btn-video-skip:hover { background: rgba(30,41,59,0.9); }
+    .evt-layout {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      width: 100%;
+    }
     .evt-card {
       width: 100%;
-      max-width: 400px;
+      max-width: 560px;
       text-align: center;
     }
     .evt-logo {
@@ -247,16 +254,98 @@
     .evt-qr-wrap {
       background: #fff;
       border-radius: 16px;
-      padding: 1rem;
+      padding: clamp(1rem, 2.2vw, 1.6rem);
       display: inline-block;
+      max-width: 100%;
+      box-sizing: border-box;
       box-shadow: 0 8px 30px rgba(0,0,0,0.35);
     }
-    .evt-qr-wrap img { display: block; width: 220px; height: 220px; }
+    .evt-qr-wrap img {
+      display: block;
+      width: clamp(220px, 30vw, 480px);
+      height: clamp(220px, 30vw, 480px);
+      max-width: 100%;
+    }
 
     .evt-loading, .evt-error {
       color: var(--muted);
       font-size: 0.85rem;
       padding: 2rem 0;
+    }
+
+    /* Panel "Contactanos" junto al QR */
+    .evt-contact {
+      width: 100%;
+      max-width: 340px;
+      text-align: left;
+      background: rgba(30,41,59,0.65);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1.3rem 1.4rem;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .evt-contact-title {
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .contact-item + .contact-item {
+      margin-top: 1.15rem;
+      padding-top: 1.15rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .contact-role {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.15rem;
+    }
+    .contact-name { font-size: 0.98rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .contact-link {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.82rem;
+      color: var(--text);
+      text-decoration: none;
+      padding: 0.3rem 0;
+      word-break: break-all;
+    }
+    .contact-link:hover { color: var(--indigo); }
+    .contact-whatsapp svg { width: 16px; height: 16px; flex-shrink: 0; fill: #25D366; }
+    .contact-whatsapp:hover { color: #25D366; }
+
+    /* En pantallas grandes (proyección): el QR queda centrado en el medio y el
+       panel de contacto se ubica en una columna aparte a la derecha, sin
+       invadir nunca el espacio del QR. */
+    @media (min-width: 900px) {
+      .evt-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        column-gap: 2rem;
+        width: 100%;
+      }
+      .evt-card { grid-column: 2; }
+      .evt-contact {
+        grid-column: 3;
+        justify-self: start;
+        align-self: center;
+        margin: 0;
+      }
+
+      /* agrandamos textos para legibilidad a distancia */
+      .evt-emoji { font-size: 3.4rem; }
+      .evt-card h2 { font-size: 2rem; }
+      .evt-sub { font-size: 1.1rem; }
+      .evt-contact-title { font-size: 1.3rem; }
+      .contact-name { font-size: 1.2rem; }
+      .contact-role { font-size: 0.85rem; }
+      .contact-link { font-size: 1rem; }
+      .contact-whatsapp svg { width: 20px; height: 20px; }
     }
 
     /* ── Nav flotante ── */
@@ -401,14 +490,38 @@
       <video id="evt-video" playsinline></video>
       <button id="btn-video-skip">Saltar ▶</button>
     </div>
-    <div class="evt-card" id="evt-card">
-      <img id="evt-logo" class="evt-logo" src="" alt="" />
-      <div class="evt-emoji" id="evt-emoji">🎉</div>
-      <h2 id="evt-title">Fotos del evento</h2>
-      <p class="evt-sub">Escaneá el código QR con tu celular para subir tus fotos</p>
-      <div id="evt-body">
-        <p class="evt-loading">Cargando QR…</p>
+    <div class="evt-layout">
+      <div class="evt-card" id="evt-card">
+        <img id="evt-logo" class="evt-logo" src="" alt="" />
+        <div class="evt-emoji" id="evt-emoji">🎉</div>
+        <h2 id="evt-title">Fotos del evento</h2>
+        <p class="evt-sub">Escaneá el código QR con tu celular para subir tus fotos</p>
+        <div id="evt-body">
+          <p class="evt-loading">Cargando QR…</p>
+        </div>
       </div>
+
+      <aside class="evt-contact">
+        <h3 class="evt-contact-title">📞 Contactanos</h3>
+        <div class="contact-item">
+          <p class="contact-role">🎙️ Locutor</p>
+          <p class="contact-name">Damián Cappri</p>
+          <a class="contact-link" href="mailto:damiancappri@gmail.com">✉️ damiancappri@gmail.com</a>
+          <a class="contact-link contact-whatsapp" href="https://wa.me/5493572524558" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.004 3C9.377 3 4 8.373 4 15c0 2.394.702 4.62 1.912 6.49L4 29l7.706-1.876A11.94 11.94 0 0 0 16.004 27C22.63 27 28 21.627 28 15S22.63 3 16.004 3zm6.988 16.943c-.298.836-1.47 1.556-2.404 1.752-.638.135-1.472.243-4.278-.918-3.593-1.487-5.906-5.13-6.087-5.367-.174-.237-1.463-1.946-1.463-3.712 0-1.766.928-2.633 1.257-2.993.298-.328.65-.41.867-.41.217 0 .434.002.624.011.2.01.469-.076.734.56.298.71.997 2.476 1.084 2.657.087.181.14.393.026.63-.114.237-.174.383-.343.59-.174.207-.36.462-.514.62-.174.18-.355.375-.152.735.202.36.9 1.492 1.933 2.418 1.328 1.19 2.448 1.559 2.808 1.734.36.174.57.148.78-.09.21-.237.9-1.05 1.14-1.412.24-.36.48-.298.81-.18.328.12 2.087.987 2.445 1.166.36.18.6.27.687.42.087.15.087.868-.211 1.704z"/></svg>
+            3572 - 524558
+          </a>
+        </div>
+        <div class="contact-item">
+          <p class="contact-role">🎧 DJ</p>
+          <p class="contact-name">Pablo Etcheverry</p>
+          <a class="contact-link" href="mailto:petcheverry43@gmail.com">✉️ petcheverry43@gmail.com</a>
+          <a class="contact-link contact-whatsapp" href="https://wa.me/5493572550352" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.004 3C9.377 3 4 8.373 4 15c0 2.394.702 4.62 1.912 6.49L4 29l7.706-1.876A11.94 11.94 0 0 0 16.004 27C22.63 27 28 21.627 28 15S22.63 3 16.004 3zm6.988 16.943c-.298.836-1.47 1.556-2.404 1.752-.638.135-1.472.243-4.278-.918-3.593-1.487-5.906-5.13-6.087-5.367-.174-.237-1.463-1.946-1.463-3.712 0-1.766.928-2.633 1.257-2.993.298-.328.65-.41.867-.41.217 0 .434.002.624.011.2.01.469-.076.734.56.298.71.997 2.476 1.084 2.657.087.181.14.393.026.63-.114.237-.174.383-.343.59-.174.207-.36.462-.514.62-.174.18-.355.375-.152.735.202.36.9 1.492 1.933 2.418 1.328 1.19 2.448 1.559 2.808 1.734.36.174.57.148.78-.09.21-.237.9-1.05 1.14-1.412.24-.36.48-.298.81-.18.328.12 2.087.987 2.445 1.166.36.18.6.27.687.42.087.15.087.868-.211 1.704z"/></svg>
+            3572 - 550352
+          </a>
+        </div>
+      </aside>
     </div>
   </section>
 
